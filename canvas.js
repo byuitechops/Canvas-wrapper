@@ -3,7 +3,7 @@
 /*eslint no-console:0*/
 
 const request = require('request');
-const auth = require('./auth.json');
+const auth = require('./auth.json'); 
 
 
 /* Always set per_page? */

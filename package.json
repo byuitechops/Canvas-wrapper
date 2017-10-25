@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/byuitechops/Canvas-wrapper/issues"
   },
-  "homepage": "https://github.com/byuitechops/Canvas-wrapper#readme"
+  "homepage": "https://github.com/byuitechops/Canvas-wrapper#readme",
+  "dependencies": {
+    "request": "^2.83.0"
+  }
 }
