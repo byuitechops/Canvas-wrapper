@@ -102,7 +102,7 @@ const putRequest = function (url, putObj, cb) {
  * POST request. takes URL and postObj.
  * returns err, response
  ***************************************/
-const postRequest = function (url, postObj, body, cb) {
+const postRequest = function (url, postObj, cb) {
     url = urlCleaner(url);
     request.post({
         url: url,
