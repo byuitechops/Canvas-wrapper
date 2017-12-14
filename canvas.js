@@ -51,7 +51,7 @@ function paginate(response, caller, data, cb) {
  * to ensure we don't get a 403 from throttling
  ***********************************************/
 function checkRequestsRemaining(response, cb) {
-    if (response.headers['x-rate-limit-remaining'] > 25) {
+    if (response.headers['x-rate-limit-remaining'] < 150) {
         // console.log(response.headers['x-rate-limit-remaining']);
         console.log('Canvas Servers are melting. Give them a minute to cool down');
         setTimeout(cb, 10000);
