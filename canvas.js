@@ -3,7 +3,7 @@
 /*eslint no-console:0*/
 
 const request = require('request');
-const auth = require('../../auth.json'); //so it can be used in a module
+const auth = require('../../auth.json'); // ../../ so it can be used in a module
 
 
 /* Always set per_page? */
@@ -46,6 +46,20 @@ function paginate(response, caller, data, cb) {
     }
 }
 
+/***********************************************
+ * checks the x-rate-limit-remaining param 
+ * to ensure we don't get a 403 from throttling
+ ***********************************************/
+function checkRequestsRemaining(response, cb) {
+    if (response.headers['x-rate-limit-remaining'] > 25) {
+        // console.log(response.headers['x-rate-limit-remaining']);
+        console.log('Canvas Servers are melting. Give them a minute to cool down');
+        setTimeout(cb, 10000);
+    } else {
+        cb();
+    }
+}
+
 
 /**************************************
  * GET operation. returns err, data
@@ -61,14 +75,17 @@ const getRequest = function (url, cb, data) {
             cb(new Error(`Status Code: ${response.statusCode}`, null));
             return;
         }
-        try{
-            body = JSON.parse(body);
-        } catch (e){
-            cb(e, null);
-            return;
-        }
-        data = data.concat(body);
-        paginate(response, getRequest, data, cb);
+
+        checkRequestsRemaining(response, () => {
+            try {
+                body = JSON.parse(body);
+            } catch (e) {
+                cb(e, null);
+                return;
+            }
+            data = data.concat(body);
+            paginate(response, getRequest, data, cb);
+        });
     }).auth(null, null, true, auth.token);
 }
 
@@ -88,13 +105,17 @@ const putRequest = function (url, putObj, cb) {
         } else if (response.statusCode !== 200) {
             cb(new Error(`Status Code: ${response.statusCode}`, null));
             return;
-        } try {
-            body = JSON.parse(body);
-        } catch (e) {
-            cb(e, null);
-            return;
         }
-        cb(null, body);
+
+        checkRequestsRemaining(response, () => {
+            try {
+                body = JSON.parse(body);
+            } catch (e) {
+                cb(e, null);
+                return;
+            }
+            cb(null, body);
+        });
     }).auth(null, null, true, auth.token);
 }
 
@@ -115,14 +136,16 @@ const postRequest = function (url, postObj, cb) {
             cb(new Error(`Status Code: ${response.statusCode}`, null));
             return;
         }
-        try {
-            body = JSON.parse(body);
-        } catch (e) {
-            cb(e, null);
-            return;
-        }
-        cb(null, body);
 
+        checkRequestsRemaining(response, () => {
+            try {
+                body = JSON.parse(body);
+            } catch (e) {
+                cb(e, null);
+                return;
+            }
+            cb(null, body);
+        });
     }).auth(null, null, true, auth.token);
 
 }
@@ -141,13 +164,16 @@ const deleteRequest = function (url, cb) {
             cb(new Error(`Status Code: ${response.statusCode}`, null));
             return;
         }
-        try {
-            body = JSON.parse(body);
-        } catch (e) {
-            cb(e, null);
-            return;
-        }
-        cb(null, body);
+
+        checkRequestsRemaining(response, () => {
+            try {
+                body = JSON.parse(body);
+            } catch (e) {
+                cb(e, null);
+                return;
+            }
+            cb(null, body);
+        });
     }).auth(null, null, true, auth.token);
 }
 
