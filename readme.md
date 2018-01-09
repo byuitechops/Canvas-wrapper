@@ -1,11 +1,18 @@
 # Canvas Wrapper #
-The canvas Wrapper `canvas.js` contains the basic crud operations (PUT, POST, GET, DELETE). 
-If there are any API calls we fin ourself frequently making, they will be added to the wrapper. 
+The canvas Wrapper simplifies calls to the Canvas API byproviding shorthands for the basic crud operations (PUT, POST, GET, DELETE). 
 This is in an effort to simplify the child modules and reduce code redundancy. 
-Parameters for GET and DELETE url's must be appended before being sent to the wrapper.
-The wrapper allows the user to input the full URL or just the path. 
+Parameters for GET and DELETE requests must be appended to the URL/ URI before being sent to the wrapper.
+The wrapper allows the user to input the full URL or just the path.
+The wrapper requires auth.json (which contain a userId & auth token) to exist 2 directories up from the canvas wrapper. 
+This is to make the wrapper easier to use in the D2L to Canvas conversion tool.
+In addition to the basic CRUD operations, the wrapper now contains getters for the following:
+* Pages
+* Assignments
+* Quizzes
+* Modules
+* Files
 
-
+# Usage #
 Require the wrapper:
 
 `const canvas = require('../canvas.js')`
@@ -40,5 +47,12 @@ canvas.post(url, postObj, (err, body) => {
 Pretty much the same as GET... but it returns body instead of data.
 ```
 canvas.delete(url, (err, body) => {
+});
+```
+
+## Getters ##
+All getters (modules, pages, assignments, discussions, & files) require the courseID and a callback.
+```
+canvas.getModules(courseID, (err, modules) => {
 });
 ```
