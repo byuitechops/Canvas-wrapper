@@ -3,10 +3,12 @@
 /*eslint no-console:0*/
 
 const request = require('request');
-const auth = require('../../auth.json'); // ../../ so it can be used in a module
+const auth = require('./auth.json'); // ../../ so it can be used in a module
 
 
-/* Always set per_page? */
+// Always set per_page? 
+
+/* START INTERNAL HELPER FUNCTIONS */
 
 /******************************
  * Adds protocol and domain to 
@@ -53,19 +55,92 @@ function paginate(response, caller, data, cb) {
 function checkRequestsRemaining(response, cb) {
     if (response.headers['x-rate-limit-remaining'] < 150) {
         // console.log(response.headers['x-rate-limit-remaining']);
-        console.log('Canvas Servers are melting. Give them a minute to cool down');
+        console.log('Canvas servers are melting. Give them a minute to cool down.');
         setTimeout(cb, 10000);
     } else {
         cb();
     }
 }
 
+/*************************************************
+ * Takes a url, cb, and an optional obj. Obj must
+ * be null if not required. Returns a boolean.
+ ************************************************/
+function validateParams(url, cb, obj) {
+    /* obj is null when not required */
+    if (!cb || typeof cb != "function") {
+        throw Error('CB is not a function');
+    } else if (!url || typeof url != 'string' || (obj !== null && typeof obj != "object")) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+
+/* END INTERNAL HELPER FUNCTIONS */
+
+
+/* START EXTERNAL FUNCTIONS */
+
+/**********************************
+ * gets all modules using courseId
+ **********************************/
+const getModules = function (courseId, cb) {
+    var url = `/api/v1/courses/${courseId}/modules`;
+    getRequest(url, cb);
+}
+
+/********************************
+ * gets all pages using courseId
+ ********************************/
+const getPages = function (courseId, cb) {
+    var url = `/api/v1/courses/${courseId}/pages`;
+    getRequest(url, cb);
+}
+
+/**************************************
+ * gets all Assignments using courseId
+ *************************************/
+const getAssignments = function (courseId, cb) {
+    var url = `/api/v1/courses/${courseId}/assignments`;
+    getRequest(url, cb);
+}
+
+/*********************************************
+ * gets all Discussion topics using courseId
+ ********************************************/
+const getDiscussions = function (courseId, cb) {
+    var url = `/api/v1/courses/${courseId}/discussion_topics`;
+    getRequest(url, cb);
+}
+
+/*********************************
+ * gets all Files using courseId
+ ********************************/
+const getFiles = function (courseId, cb) {
+    var url = `/api/v1/courses/${courseId}/files`;
+    getRequest(url, cb);
+}
+
+/***********************************
+ * gets all Quizzes using courseId
+ **********************************/
+const getQuizzes = function (courseId, cb) {
+    var url = `/api/v1/courses/${courseId}/quizzes`;
+    getRequest(url, cb);
+}
+
+/* START CRUD FUNCTIONS */
 
 /**************************************
  * GET operation. returns err, data
  *************************************/
-const getRequest = function (url, cb, data) {
-    if (data == undefined) data = [];
+const getRequest = function (url, cb, data = []) {
+    if (!validateParams(url, cb, null)) {
+        cb(new Error('Invalid parameters sent'));
+        return;
+    }
     url = urlCleaner(url);
     request.get(url, (err, response, body) => {
         if (err) {
@@ -94,6 +169,10 @@ const getRequest = function (url, cb, data) {
  * returns err, response
  ******************************************/
 const putRequest = function (url, putObj, cb) {
+    if (!validateParams(url, cb, putObj)) {
+        cb(new Error('Invalid parameters sent'));
+        return;
+    }
     url = urlCleaner(url);
     request.put({
         url: url,
@@ -124,6 +203,10 @@ const putRequest = function (url, putObj, cb) {
  * returns err, response
  ***************************************/
 const postRequest = function (url, postObj, cb) {
+    if (!validateParams(url, cb, postObj)) {
+        cb(new Error('Invalid parameters sent'));
+        return;
+    }
     url = urlCleaner(url);
     request.post({
         url: url,
@@ -155,6 +238,10 @@ const postRequest = function (url, postObj, cb) {
  * no pagination
  ************************************************/
 const deleteRequest = function (url, cb) {
+    if (!validateParams(url, cb, null)) {
+        cb(new Error('Invalid parameters sent'));
+        return;
+    }
     url = urlCleaner(url);
     request.delete(url, (err, response, body) => {
         if (err) {
@@ -177,9 +264,19 @@ const deleteRequest = function (url, cb) {
     }).auth(null, null, true, auth.token);
 }
 
+/* END CRUD FUNCTIONS */
+
+/* END EXTERNAL FUNCTIONS */
+
 module.exports = {
     get: getRequest,
     put: putRequest,
     post: postRequest,
-    delete: deleteRequest
+    delete: deleteRequest,
+    getModules: getModules,
+    getPages: getPages,
+    getAssignments: getAssignments,
+    getDiscussions: getDiscussions,
+    getFiles: getFiles,
+    getQuizzes: getQuizzes
 }
