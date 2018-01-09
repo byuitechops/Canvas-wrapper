@@ -83,54 +83,6 @@ function validateParams(url, cb, obj) {
 
 /* START EXTERNAL FUNCTIONS */
 
-/**********************************
- * gets all modules using courseId
- **********************************/
-const getModules = function (courseId, cb) {
-    var url = `/api/v1/courses/${courseId}/modules`;
-    getRequest(url, cb);
-}
-
-/********************************
- * gets all pages using courseId
- ********************************/
-const getPages = function (courseId, cb) {
-    var url = `/api/v1/courses/${courseId}/pages`;
-    getRequest(url, cb);
-}
-
-/**************************************
- * gets all Assignments using courseId
- *************************************/
-const getAssignments = function (courseId, cb) {
-    var url = `/api/v1/courses/${courseId}/assignments`;
-    getRequest(url, cb);
-}
-
-/*********************************************
- * gets all Discussion topics using courseId
- ********************************************/
-const getDiscussions = function (courseId, cb) {
-    var url = `/api/v1/courses/${courseId}/discussion_topics`;
-    getRequest(url, cb);
-}
-
-/*********************************
- * gets all Files using courseId
- ********************************/
-const getFiles = function (courseId, cb) {
-    var url = `/api/v1/courses/${courseId}/files`;
-    getRequest(url, cb);
-}
-
-/***********************************
- * gets all Quizzes using courseId
- **********************************/
-const getQuizzes = function (courseId, cb) {
-    var url = `/api/v1/courses/${courseId}/quizzes`;
-    getRequest(url, cb);
-}
-
 /* START CRUD FUNCTIONS */
 
 /**************************************
@@ -265,6 +217,55 @@ const deleteRequest = function (url, cb) {
 }
 
 /* END CRUD FUNCTIONS */
+
+
+/**********************************
+ * gets all modules using courseId
+ **********************************/
+const getModules = function (courseId, cb) {
+    var url = `/api/v1/courses/${courseId}/modules`;
+    getRequest(url, cb);
+}
+
+/********************************
+ * gets all pages using courseId
+ ********************************/
+const getPages = function (courseId, cb) {
+    var url = `/api/v1/courses/${courseId}/pages`;
+    getRequest(url, cb);
+}
+
+/**************************************
+ * gets all Assignments using courseId
+ *************************************/
+const getAssignments = function (courseId, cb) {
+    var url = `/api/v1/courses/${courseId}/assignments`;
+    getRequest(url, cb);
+}
+
+/*********************************************
+ * gets all Discussion topics using courseId
+ ********************************************/
+const getDiscussions = function (courseId, cb) {
+    var url = `/api/v1/courses/${courseId}/discussion_topics`;
+    getRequest(url, cb);
+}
+
+/*********************************
+ * gets all Files using courseId
+ ********************************/
+const getFiles = function (courseId, cb) {
+    var url = `/api/v1/courses/${courseId}/files`;
+    getRequest(url, cb);
+}
+
+/***********************************
+ * gets all Quizzes using courseId
+ **********************************/
+const getQuizzes = function (courseId, cb) {
+    var url = `/api/v1/courses/${courseId}/quizzes`;
+    getRequest(url, cb);
+}
 
 /* END EXTERNAL FUNCTIONS */
 
