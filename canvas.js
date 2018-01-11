@@ -227,6 +227,14 @@ const getModules = function (courseId, cb) {
     getRequest(url, cb);
 }
 
+/*************************************
+ * gets all module Items in a module
+ ************************************/
+const getModuleItems = function (courseId, moduleId, cb) {
+    var url = `/api/v1/courses/${courseId}/modules/${moduleId}/items`;
+    getRequest(url, cb);
+}
+
 /********************************
  * gets all pages using courseId
  ********************************/
@@ -267,6 +275,14 @@ const getQuizzes = function (courseId, cb) {
     getRequest(url, cb);
 }
 
+/*************************************
+ * gets all Quiz questions in a quiz
+ ************************************/
+const getQuizQuestions = function (courseId, quizId, cb) {
+    var url = `/api/v1/courses/${courseId}/quizzes/${quizId}/questions`;
+    getRequest(url, cb);
+}
+
 /* END EXTERNAL FUNCTIONS */
 
 module.exports = {
@@ -275,9 +291,11 @@ module.exports = {
     post: postRequest,
     delete: deleteRequest,
     getModules: getModules,
+    getModuleItems: getModuleItems,
     getPages: getPages,
     getAssignments: getAssignments,
     getDiscussions: getDiscussions,
     getFiles: getFiles,
-    getQuizzes: getQuizzes
+    getQuizzes: getQuizzes,
+    getQuizQuestions: getQuizQuestions
 }
