@@ -51,8 +51,22 @@ canvas.delete(url, (err, body) => {
 ```
 
 ## Getters ##
-All getters (modules, pages, assignments, discussions, & files) require the courseID and a callback.
+There are getters built in for common items. 
+
+General getters take a course ID
+* getModules
+* getPages
+* getAssignments
+* getDiscussions
+* getFiles
 ```
 canvas.getModules(courseID, (err, modules) => {
 });
+
 ```
+Specific item getters require a course ID and the Id of their parent container
+* getModuleItems
+* getQuizQuestions
+```
+canvas.getModuleItems(courseId, moduleId (err, moduleItems) => {
+});
