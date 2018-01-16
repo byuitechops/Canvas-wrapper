@@ -2,8 +2,9 @@
 /*eslint no-unused-vars:1*/
 /*eslint no-console:0*/
 
+/* ../../ so it can be used in a module */
+const auth = require('../../auth.json'); 
 const request = require('request');
-const auth = require('../../auth.json'); // ../../ so it can be used in a module
 
 
 // Always set per_page? 
@@ -30,15 +31,15 @@ function urlCleaner(url) {
  ************************************/
 function paginate(response, caller, data, cb) {
     if (response.headers.link == undefined) {
-        // No pagination: no worries
+        /* No pagination = exit wrapper */
         cb(null, data);
     } else {
-        // pagination will occur!
-        // Canvas return string of XML, filter to XML tag
+        /* pagination will occur! */
+        /* Canvas return string of XML, filter to XML tag */
         var link = response.headers.link.split(',').filter((link) => {
             return link.includes('next');
         })[0];
-        // filter <> and other characters out of url
+        /* filter <> and other characters out of url */
         if (link == undefined || link.length == 0) {
             cb(null, data);
         } else {
@@ -77,7 +78,6 @@ function validateParams(url, cb, obj) {
     }
 }
 
-
 /* END INTERNAL HELPER FUNCTIONS */
 
 
@@ -85,9 +85,10 @@ function validateParams(url, cb, obj) {
 
 /* START CRUD FUNCTIONS */
 
-/**************************************
+/*************************************************
  * GET operation. returns err, data
- *************************************/
+ * DOES NOT exit the wrapper unless an err occurs
+ *************************************************/
 const getRequest = function (url, cb, data = []) {
     if (!validateParams(url, cb, null)) {
         cb(new Error('Invalid parameters sent'));
