@@ -100,7 +100,7 @@ const getRequest = function (url, cb, data = []) {
             cb(err, null);
             return;
         } else if (response.statusCode !== 200) {
-            cb(new Error(`Status Code: ${response.statusCode}`, null));
+            cb(new Error(`Status Code: ${response.statusCode}`, response));
             return;
         }
 
@@ -135,7 +135,7 @@ const putRequest = function (url, putObj, cb) {
             cb(err, response);
             return;
         } else if (response.statusCode !== 200) {
-            cb(new Error(`Status Code: ${response.statusCode}`, null));
+            cb(new Error(`Status Code: ${response.statusCode}`, request));
             return;
         }
 
@@ -169,7 +169,7 @@ const postRequest = function (url, postObj, cb) {
             cb(err, null);
             return;
         } else if (response.statusCode !== 200) {
-            cb(new Error(`Status Code: ${response.statusCode}`, null));
+            cb(new Error(`Status Code: ${response.statusCode}`, response));
             return;
         }
 
@@ -201,7 +201,7 @@ const deleteRequest = function (url, cb) {
             cb(err, response);
             return;
         } else if (response.statusCode !== 200) {
-            cb(new Error(`Status Code: ${response.statusCode}`, null));
+            cb(new Error(`Status Code: ${response.statusCode}`, response));
             return;
         }
 
