@@ -135,7 +135,7 @@ const putRequest = function (url, putObj, cb) {
             cb(err, response);
             return;
         } else if (response.statusCode !== 200) {
-            cb(new Error(`Status Code: ${response.statusCode}`, request));
+            cb(new Error(`Status Code: ${response.statusCode}`, response));
             return;
         }
 
