@@ -3,8 +3,8 @@
 /*eslint no-console:0*/
 
 /* ../../ so it can be used in a module */
-//const auth = require('../../auth.json');
-const auth = require('./auth.json');
+const auth = require('../../auth.json');
+// const auth = require('./auth.json');
 const request = require('request');
 
 var cache = [];
