@@ -3,7 +3,8 @@
 /*eslint no-console:0*/
 
 /* ../../ so it can be used in a module */
-const auth = require('../../auth.json');
+//const auth = require('../../auth.json');
+const auth = require('./auth.json');
 const request = require('request');
 
 var cache = [];
@@ -112,22 +113,25 @@ const getRequest = function (url, cb, data = []) {
     if (useCache == true) {
         /* There will be no pagination!!! */
         /* check Cache */
+
+        // console.log('CHECKING THE CACHE');
+
         var storedCall = cache.find((call) => {
             return call.url == url;
         });
 
         /* Return Cached value if found */
-        if (storedCall !== undefined) {
+        /* if (storedCall !== undefined) {
             cacheCounter++;
-            console.log('PREVENTED API CALLS:', cacheCounter);
+            // console.log('PREVENTED API CALLS:', cacheCounter);
             cb(null, storedCall.body);
             return;
-        }
+        } */
     }
 
     request.get(url, (err, response, body) => {
         apiCounter++;
-        console.log('API CALLS MADE:', apiCounter);
+        // console.log('API CALLS MADE:', apiCounter);
         if (err) {
             cb(err, null);
             return;
@@ -165,7 +169,7 @@ const getRequest = function (url, cb, data = []) {
  ******************************************/
 const putRequest = function (url, putObj, cb) {
     apiCounter++;
-    console.log('API CALLS MADE:', apiCounter);
+    // console.log('API CALLS MADE:', apiCounter);
     var useCache;
     if (!validateParams(url, cb, putObj)) {
         cb(new Error('Invalid parameters sent'));
@@ -182,7 +186,7 @@ const putRequest = function (url, putObj, cb) {
             cb(err, response);
             return;
         } else if (response.statusCode !== 200) {
-            console.log(`Status Code: ${response.statusCode} | ${response.body}`);
+            // console.log(`Status Code: ${response.statusCode} | ${response.body}`);
             cb(new Error(`Status Code: ${response.statusCode} | ${ response.body }`));
             return;
         }
@@ -215,7 +219,7 @@ const putRequest = function (url, putObj, cb) {
  ***************************************/
 const postRequest = function (url, postObj, cb) {
     apiCounter++;
-    console.log('API CALLS MADE:', apiCounter);
+    // console.log('API CALLS MADE:', apiCounter);
     if (!validateParams(url, cb, postObj)) {
         cb(new Error('Invalid parameters sent'));
         return;
@@ -263,7 +267,7 @@ const postRequest = function (url, postObj, cb) {
  ************************************************/
 const deleteRequest = function (url, cb) {
     apiCounter++;
-    console.log('API CALLS MADE:', apiCounter);
+    // console.log('API CALLS MADE:', apiCounter);
     if (!validateParams(url, cb, null)) {
         cb(new Error('Invalid parameters sent'));
         return;
