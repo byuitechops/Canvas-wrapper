@@ -3,9 +3,12 @@
 /*eslint no-console:0*/
 
 /* ../../ so it can be used in a module */
-const auth = require('../../auth.json'); 
+const auth = require('../../auth.json');
 const request = require('request');
 
+var cache = [];
+var apiCounter = 0;
+var cacheCounter = 0;
 
 // Always set per_page? 
 
@@ -78,6 +81,15 @@ function validateParams(url, cb, obj) {
     }
 }
 
+/**************************************************
+ * ADD DESCRIPTION
+ * 
+ ***************************************************/
+function hasId(url) {
+    return /\/\d+($|\?)/g.test(url);
+}
+
+
 /* END INTERNAL HELPER FUNCTIONS */
 
 
@@ -95,7 +107,27 @@ const getRequest = function (url, cb, data = []) {
         return;
     }
     url = urlCleaner(url);
+
+    var useCache = hasId(url);
+    if (useCache == true) {
+        /* There will be no pagination!!! */
+        /* check Cache */
+        var storedCall = cache.find((call) => {
+            return call.url == url;
+        });
+
+        /* Return Cached value if found */
+        if (storedCall !== undefined) {
+            cacheCounter++;
+            console.log('PREVENTED API CALLS:', cacheCounter);
+            cb(null, storedCall.body);
+            return;
+        }
+    }
+
     request.get(url, (err, response, body) => {
+        apiCounter++;
+        console.log('API CALLS MADE:', apiCounter);
         if (err) {
             cb(err, null);
             return;
@@ -112,6 +144,16 @@ const getRequest = function (url, cb, data = []) {
                 return;
             }
             data = data.concat(body);
+
+            /* Update Cache IF request has an ID*/
+            if (useCache == true) {
+                cache.unshift({
+                    'type': 'GET',
+                    'url': url,
+                    'body': data
+                });
+            }
+
             paginate(response, getRequest, data, cb);
         });
     }).auth(null, null, true, auth.token);
@@ -122,11 +164,16 @@ const getRequest = function (url, cb, data = []) {
  * returns err, response
  ******************************************/
 const putRequest = function (url, putObj, cb) {
+    apiCounter++;
+    console.log('API CALLS MADE:', apiCounter);
+    var useCache;
     if (!validateParams(url, cb, putObj)) {
         cb(new Error('Invalid parameters sent'));
         return;
     }
     url = urlCleaner(url);
+    useCache = hasId(url);
+
     request.put({
         url: url,
         form: putObj
@@ -147,6 +194,16 @@ const putRequest = function (url, putObj, cb) {
                 cb(e, null);
                 return;
             }
+
+            /* save to cache when done */
+            if (useCache == true) {
+                cache.unshift({
+                    'type': 'PUT',
+                    'url': url,
+                    'body': body
+                });
+            }
+
             cb(null, body);
         });
     }).auth(null, null, true, auth.token);
@@ -157,11 +214,14 @@ const putRequest = function (url, putObj, cb) {
  * returns err, response
  ***************************************/
 const postRequest = function (url, postObj, cb) {
+    apiCounter++;
+    console.log('API CALLS MADE:', apiCounter);
     if (!validateParams(url, cb, postObj)) {
         cb(new Error('Invalid parameters sent'));
         return;
     }
     url = urlCleaner(url);
+    var useCache = hasId(url);
     request.post({
         url: url,
         form: postObj
@@ -181,6 +241,16 @@ const postRequest = function (url, postObj, cb) {
                 cb(e, null);
                 return;
             }
+
+            /* save to cache when done */
+            if (useCache == true) {
+                cache.unshift({
+                    'type': 'POST',
+                    'url': url,
+                    'body': body
+                });
+            }
+
             cb(null, body);
         });
     }).auth(null, null, true, auth.token);
@@ -192,6 +262,8 @@ const postRequest = function (url, postObj, cb) {
  * no pagination
  ************************************************/
 const deleteRequest = function (url, cb) {
+    apiCounter++;
+    console.log('API CALLS MADE:', apiCounter);
     if (!validateParams(url, cb, null)) {
         cb(new Error('Invalid parameters sent'));
         return;
