@@ -47,7 +47,7 @@ function paginate(response, caller, data, cb) {
         if (link == undefined || link.length == 0) {
             cb(null, data);
         } else {
-            var pageinateUrl = link.split('<')[1].split('>')[0]
+            var pageinateUrl = link.split('<')[1].split('>')[0];
             caller(pageinateUrl, cb, data);
         }
     }
@@ -73,9 +73,9 @@ function checkRequestsRemaining(response, cb) {
  ************************************************/
 function validateParams(url, cb, obj) {
     /* obj is null when not required */
-    if (!cb || typeof cb != "function") {
+    if (!cb || typeof cb != 'function') {
         throw Error('CB is not a function');
-    } else if (!url || typeof url != 'string' || (obj !== null && typeof obj != "object")) {
+    } else if (!url || typeof url != 'string' || (obj !== null && typeof obj != 'object')) {
         return false;
     } else {
         return true;
@@ -161,7 +161,7 @@ const getRequest = function (url, cb, data = []) {
             paginate(response, getRequest, data, cb);
         });
     }).auth(null, null, true, auth.token);
-}
+};
 
 /*******************************************
  * PUT request. requires a url & putObject
@@ -211,7 +211,7 @@ const putRequest = function (url, putObj, cb) {
             cb(null, body);
         });
     }).auth(null, null, true, auth.token);
-}
+};
 
 /****************************************
  * POST request. takes URL and postObj.
@@ -259,7 +259,7 @@ const postRequest = function (url, postObj, cb) {
         });
     }).auth(null, null, true, auth.token);
 
-}
+};
 
 /************************************************
  * DELETE operation. returns err, response.
@@ -292,7 +292,7 @@ const deleteRequest = function (url, cb) {
             cb(null, body);
         });
     }).auth(null, null, true, auth.token);
-}
+};
 
 /* END CRUD FUNCTIONS */
 
@@ -303,7 +303,7 @@ const deleteRequest = function (url, cb) {
 const getModules = function (courseId, cb) {
     var url = `/api/v1/courses/${courseId}/modules`;
     getRequest(url, cb);
-}
+};
 
 /*************************************
  * gets all module Items in a module
@@ -311,7 +311,7 @@ const getModules = function (courseId, cb) {
 const getModuleItems = function (courseId, moduleId, cb) {
     var url = `/api/v1/courses/${courseId}/modules/${moduleId}/items`;
     getRequest(url, cb);
-}
+};
 
 /********************************
  * gets all pages using courseId
@@ -319,7 +319,7 @@ const getModuleItems = function (courseId, moduleId, cb) {
 const getPages = function (courseId, cb) {
     var url = `/api/v1/courses/${courseId}/pages`;
     getRequest(url, cb);
-}
+};
 
 /**************************************
  * gets all Assignments using courseId
@@ -327,7 +327,7 @@ const getPages = function (courseId, cb) {
 const getAssignments = function (courseId, cb) {
     var url = `/api/v1/courses/${courseId}/assignments`;
     getRequest(url, cb);
-}
+};
 
 /*********************************************
  * gets all Discussion topics using courseId
@@ -335,7 +335,7 @@ const getAssignments = function (courseId, cb) {
 const getDiscussions = function (courseId, cb) {
     var url = `/api/v1/courses/${courseId}/discussion_topics`;
     getRequest(url, cb);
-}
+};
 
 /*********************************
  * gets all Files using courseId
@@ -343,7 +343,7 @@ const getDiscussions = function (courseId, cb) {
 const getFiles = function (courseId, cb) {
     var url = `/api/v1/courses/${courseId}/files`;
     getRequest(url, cb);
-}
+};
 
 /***********************************
  * gets all Quizzes using courseId
@@ -351,7 +351,7 @@ const getFiles = function (courseId, cb) {
 const getQuizzes = function (courseId, cb) {
     var url = `/api/v1/courses/${courseId}/quizzes`;
     getRequest(url, cb);
-}
+};
 
 /*************************************
  * gets all Quiz questions in a quiz
@@ -359,7 +359,7 @@ const getQuizzes = function (courseId, cb) {
 const getQuizQuestions = function (courseId, quizId, cb) {
     var url = `/api/v1/courses/${courseId}/quizzes/${quizId}/questions`;
     getRequest(url, cb);
-}
+};
 
 /* END EXTERNAL FUNCTIONS */
 
@@ -376,4 +376,4 @@ module.exports = {
     getFiles: getFiles,
     getQuizzes: getQuizzes,
     getQuizQuestions: getQuizQuestions
-}
+};
