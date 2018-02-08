@@ -7,9 +7,7 @@ const auth = require('../../auth.json');
 // const auth = require('./auth.json');
 const request = require('request');
 
-var cache = [];
 var apiCounter = 0;
-var cacheCounter = 0;
 
 // Always set per_page? 
 
@@ -109,29 +107,8 @@ const getRequest = function (url, cb, data = []) {
     }
     url = urlCleaner(url);
 
-    var useCache = hasId(url);
-    if (useCache == true) {
-        /* There will be no pagination!!! */
-        /* check Cache */
-
-        // console.log('CHECKING THE CACHE');
-
-        var storedCall = cache.find((call) => {
-            return call.url == url;
-        });
-
-        /* Return Cached value if found */
-        /* if (storedCall !== undefined) {
-            cacheCounter++;
-            // console.log('PREVENTED API CALLS:', cacheCounter);
-            cb(null, storedCall.body);
-            return;
-        } */
-    }
-
+    apiCounter++;
     request.get(url, (err, response, body) => {
-        apiCounter++;
-        // console.log('API CALLS MADE:', apiCounter);
         if (err) {
             cb(err, null);
             return;
@@ -149,15 +126,6 @@ const getRequest = function (url, cb, data = []) {
             }
             data = data.concat(body);
 
-            /* Update Cache IF request has an ID*/
-            if (useCache == true) {
-                cache.unshift({
-                    'type': 'GET',
-                    'url': url,
-                    'body': data
-                });
-            }
-
             paginate(response, getRequest, data, cb);
         });
     }).auth(null, null, true, auth.token);
@@ -168,16 +136,13 @@ const getRequest = function (url, cb, data = []) {
  * returns err, response
  ******************************************/
 const putRequest = function (url, putObj, cb) {
-    apiCounter++;
-    // console.log('API CALLS MADE:', apiCounter);
-    var useCache;
     if (!validateParams(url, cb, putObj)) {
         cb(new Error('Invalid parameters sent'));
         return;
     }
     url = urlCleaner(url);
-    useCache = hasId(url);
-
+    
+    apiCounter++;
     request.put({
         url: url,
         form: putObj
@@ -199,15 +164,6 @@ const putRequest = function (url, putObj, cb) {
                 return;
             }
 
-            /* save to cache when done */
-            if (useCache == true) {
-                cache.unshift({
-                    'type': 'PUT',
-                    'url': url,
-                    'body': body
-                });
-            }
-
             cb(null, body);
         });
     }).auth(null, null, true, auth.token);
@@ -218,14 +174,13 @@ const putRequest = function (url, putObj, cb) {
  * returns err, response
  ***************************************/
 const postRequest = function (url, postObj, cb) {
-    apiCounter++;
     // console.log('API CALLS MADE:', apiCounter);
     if (!validateParams(url, cb, postObj)) {
         cb(new Error('Invalid parameters sent'));
         return;
     }
     url = urlCleaner(url);
-    var useCache = hasId(url);
+    apiCounter++;
     request.post({
         url: url,
         form: postObj
@@ -246,15 +201,6 @@ const postRequest = function (url, postObj, cb) {
                 return;
             }
 
-            /* save to cache when done */
-            if (useCache == true) {
-                cache.unshift({
-                    'type': 'POST',
-                    'url': url,
-                    'body': body
-                });
-            }
-
             cb(null, body);
         });
     }).auth(null, null, true, auth.token);
@@ -266,13 +212,14 @@ const postRequest = function (url, postObj, cb) {
  * no pagination
  ************************************************/
 const deleteRequest = function (url, cb) {
-    apiCounter++;
     // console.log('API CALLS MADE:', apiCounter);
     if (!validateParams(url, cb, null)) {
         cb(new Error('Invalid parameters sent'));
         return;
     }
     url = urlCleaner(url);
+
+    apiCounter++;
     request.delete(url, (err, response, body) => {
         if (err) {
             cb(err, response);
@@ -363,7 +310,16 @@ const getQuizQuestions = function (courseId, quizId, cb) {
 
 /* END EXTERNAL FUNCTIONS */
 
+/************************************************
+ * overwrites auth.token so the wrapper can be 
+ * used by different users in 1 program
+ ***********************************************/
+function changeAuth(token) {
+    this.auth = token;
+}
+
 module.exports = {
+    apiCount: apiCounter,
     get: getRequest,
     put: putRequest,
     post: postRequest,
@@ -375,5 +331,6 @@ module.exports = {
     getDiscussions: getDiscussions,
     getFiles: getFiles,
     getQuizzes: getQuizzes,
-    getQuizQuestions: getQuizQuestions
+    getQuizQuestions: getQuizQuestions,
+    changeUser: changeAuth
 };
