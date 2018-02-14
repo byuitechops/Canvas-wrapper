@@ -315,7 +315,7 @@ const getQuizQuestions = function (courseId, quizId, cb) {
  * used by different users in 1 program
  ***********************************************/
 function changeAuth(token) {
-    this.auth = token;
+    auth.token = token;
 }
 
 module.exports = {
