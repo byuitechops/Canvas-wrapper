@@ -45,7 +45,7 @@ canvas.post(url, postObj, (err, body) => {
 ## PUT ##
 Put is used to update existing objects on a server. Parameters are wrapped in an object sent as the second parameter.
 Pagination not required.
-### canvas.post(url: String, requestParameters: Object, callback: Function)
+### canvas.put(url: String, requestParameters: Object, callback: Function)
 ``` js
 var putObj = {event: hide_final_grades: true };
 canvas.put(url, putObj, (err, body) => {
