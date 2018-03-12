@@ -7,7 +7,7 @@ var auth;
 try {
     auth = require('../../auth.json');
 } catch (e) {
-    auth = {token:''};
+    auth = { token: '' };
 }
 // const auth = require('./auth.json');
 const request = require('request');
@@ -157,7 +157,7 @@ const putRequest = function (url, putObj, cb) {
             return;
         } else if (response.statusCode > 300 || response.statusCode < 200) {
             // console.log(`Status Code: ${response.statusCode} | ${response.body}`);
-            cb(new Error(`Status Code: ${response.statusCode} | ${ response.body }`));
+            cb(new Error(`Status Code: ${response.statusCode} | ${response.body}`));
             return;
         }
 
@@ -224,19 +224,19 @@ const postJSON = function (url, postObj, cb) {
     }
     url = urlCleaner(url);
     apiCounter++;
-    
+
     request.post({
         url: url,
-        json : true,
+        json: true,
         body: postObj
     }, (err, response, body) => {
         if (err) {
             cb(err, null);
             return;
         } else if (response.statusCode > 300 || response.statusCode < 200) {
-            try{
+            try {
                 body = JSON.stringify(response.body, null, 2);
-            } catch(e){
+            } catch (e) {
                 body = response.body.toString();
             }
             cb(new Error(`Status Code: ${response.statusCode} | ${body}`));
@@ -244,11 +244,14 @@ const postJSON = function (url, postObj, cb) {
         }
 
         checkRequestsRemaining(response, () => {
-            try {
-                body = JSON.parse(body);
-            } catch (e) {
-                cb(e, null);
-                return;
+            if (body instanceof 'Object') {
+
+                try {
+                    body = JSON.parse(body);
+                } catch (e) {
+                    cb(e, null);
+                    return;
+                }
             }
 
             cb(null, body);
