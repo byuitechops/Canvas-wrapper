@@ -244,8 +244,7 @@ const postJSON = function (url, postObj, cb) {
         }
 
         checkRequestsRemaining(response, () => {
-            if (body instanceof 'Object') {
-
+            if (typeof body === 'string') {
                 try {
                     body = JSON.parse(body);
                 } catch (e) {
