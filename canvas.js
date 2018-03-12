@@ -202,7 +202,6 @@ const postRequest = function (url, postObj, cb) {
             try {
                 body = JSON.parse(body);
             } catch (e) {
-                console.log(body);
                 cb(e, null);
                 return;
             }
