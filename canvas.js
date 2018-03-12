@@ -85,15 +85,6 @@ function validateParams(url, cb, obj) {
     }
 }
 
-/**************************************************
- * ADD DESCRIPTION
- * 
- ***************************************************/
-function hasId(url) {
-    return /\/\d+($|\?)/g.test(url);
-}
-
-
 /* END INTERNAL HELPER FUNCTIONS */
 
 
@@ -179,85 +170,95 @@ const putRequest = function (url, putObj, cb) {
  * returns err, response
  ***************************************/
 const postRequest = function (url, postObj, cb) {
-    // console.log('API CALLS MADE:', apiCounter);
+    if (!validateParams(url, cb, postObj)) {
+        cb(new Error('Invalid parameters sent'));
+        return;
+    }
+
+    url = urlCleaner(url);
+    var settings = {
+        url: url,
+        form: postObj
+    };
+
+    post(settings, (err, response, body) => {
+        if (err) {
+            cb(err, null);
+            return;
+        }
+        /* parse JSON response */
+        try {
+            body = JSON.parse(body);
+        } catch (e) {
+            cb(e, null);
+            return;
+        }
+
+        cb(null, body);
+    });
+};
+
+/************************************************
+ * POSTJSON returns err, response
+ * no pagination
+ ***********************************************/
+const postJSON = function (url, postObj, cb) {
+    /* validate args */
     if (!validateParams(url, cb, postObj)) {
         cb(new Error('Invalid parameters sent'));
         return;
     }
     url = urlCleaner(url);
-    apiCounter++;
-    request.post({
+
+    var settings = {
         url: url,
-        form: postObj
-    }, (err, response, body) => {
+        json: true,
+        body: postObj
+    };
+
+    post(settings, (err, response, body) => {
         if (err) {
             cb(err, null);
             return;
-        } else if (response.statusCode > 300 || response.statusCode < 200) {
-            cb(new Error(`Status Code: ${response.statusCode} | ${response.body}`));
-            return;
         }
-
-        checkRequestsRemaining(response, () => {
+        /* parse the body if a string is returned. Normally returns an object */
+        if (typeof body === 'string') {
             try {
                 body = JSON.parse(body);
             } catch (e) {
                 cb(e, null);
                 return;
             }
+        }
 
-            cb(null, body);
-        });
-    }).auth(null, null, true, auth.token);
-
+        cb(null, body);
+    });
 };
 
-/************************************************
- * POSTJSON returns err, response
- * no pagination
- */
-const postJSON = function (url, postObj, cb) {
-    // console.log('API CALLS MADE:', apiCounter);
-    if (!validateParams(url, cb, postObj)) {
-        cb(new Error('Invalid parameters sent'));
-        return;
-    }
-    url = urlCleaner(url);
+/*********************************************
+ * Makes a POST request. Abstracted by 
+ * postRequest and postJSON
+ *********************************************/
+function post(settings, wrapperCb) {
     apiCounter++;
 
-    request.post({
-        url: url,
-        json: true,
-        body: postObj
-    }, (err, response, body) => {
+    /* make the post request */
+    request.post(settings, (err, response, body) => {
+        /* err if needed */
         if (err) {
-            cb(err, null);
+            wrapperCb(err, response, body);
             return;
         } else if (response.statusCode > 300 || response.statusCode < 200) {
-            try {
-                body = JSON.stringify(response.body, null, 2);
-            } catch (e) {
-                body = response.body.toString();
-            }
-            cb(new Error(`Status Code: ${response.statusCode} | ${body}`));
+            wrapperCb(new Error(`Status Code: ${response.statusCode} | ${response.body}`), response, body);
             return;
         }
 
         checkRequestsRemaining(response, () => {
-            if (typeof body === 'string') {
-                try {
-                    body = JSON.parse(body);
-                } catch (e) {
-                    cb(e, null);
-                    return;
-                }
-            }
-
-            cb(null, body);
+            wrapperCb(null, response, body);
         });
-    }).auth(null, null, true, auth.token);
 
-};
+    }).auth(null, null, true, auth.token);
+}
 
 
 /************************************************
@@ -376,15 +377,15 @@ module.exports = {
     get: getRequest,
     put: putRequest,
     post: postRequest,
-    postJSON: postJSON,
+    postJSON,
     delete: deleteRequest,
-    getModules: getModules,
-    getModuleItems: getModuleItems,
-    getPages: getPages,
-    getAssignments: getAssignments,
-    getDiscussions: getDiscussions,
-    getFiles: getFiles,
-    getQuizzes: getQuizzes,
-    getQuizQuestions: getQuizQuestions,
+    getModules,
+    getModuleItems,
+    getPages,
+    getAssignments,
+    getDiscussions,
+    getFiles,
+    getQuizzes,
+    getQuizQuestions,
     changeUser: changeAuth
 };
