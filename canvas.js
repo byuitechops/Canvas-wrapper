@@ -5,7 +5,7 @@
 /* ../../ so it can be used in a module */
 var auth;
 try {
-     auth = require('../../auth.json');
+    auth = require('../../auth.json');
 } catch (e) {
     auth = {token:''};
 }
@@ -235,7 +235,6 @@ const postJSON = function (url, postObj, cb) {
             cb(err, null);
             return;
         } else if (response.statusCode > 300 || response.statusCode < 200) {
-            var body;
             try{
                 body = JSON.stringify(response.body, null, 2);
             } catch(e){
@@ -257,7 +256,7 @@ const postJSON = function (url, postObj, cb) {
         });
     }).auth(null, null, true, auth.token);
 
-}
+};
 
 
 /************************************************
