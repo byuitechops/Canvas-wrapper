@@ -3,7 +3,12 @@
 /*eslint no-console:0*/
 
 /* ../../ so it can be used in a module */
-const auth = require('../../auth.json');
+var auth;
+try {
+     auth = require('../../auth.json');
+} catch (e) {
+    auth = {token:''};
+}
 // const auth = require('./auth.json');
 const request = require('request');
 
@@ -141,7 +146,7 @@ const putRequest = function (url, putObj, cb) {
         return;
     }
     url = urlCleaner(url);
-    
+
     apiCounter++;
     request.put({
         url: url,
@@ -197,6 +202,7 @@ const postRequest = function (url, postObj, cb) {
             try {
                 body = JSON.parse(body);
             } catch (e) {
+                console.log(body);
                 cb(e, null);
                 return;
             }
@@ -206,6 +212,53 @@ const postRequest = function (url, postObj, cb) {
     }).auth(null, null, true, auth.token);
 
 };
+
+/************************************************
+ * POSTJSON returns err, response
+ * no pagination
+ */
+const postJSON = function (url, postObj, cb) {
+    // console.log('API CALLS MADE:', apiCounter);
+    if (!validateParams(url, cb, postObj)) {
+        cb(new Error('Invalid parameters sent'));
+        return;
+    }
+    url = urlCleaner(url);
+    apiCounter++;
+    
+    request.post({
+        url: url,
+        json : true,
+        body: postObj
+    }, (err, response, body) => {
+        if (err) {
+            cb(err, null);
+            return;
+        } else if (response.statusCode > 300 || response.statusCode < 200) {
+            var body;
+            try{
+                body = JSON.stringify(response.body, null, 2);
+            } catch(e){
+                body = response.body.toString();
+            }
+            cb(new Error(`Status Code: ${response.statusCode} | ${body}`));
+            return;
+        }
+
+        checkRequestsRemaining(response, () => {
+            try {
+                body = JSON.parse(body);
+            } catch (e) {
+                cb(e, null);
+                return;
+            }
+
+            cb(null, body);
+        });
+    }).auth(null, null, true, auth.token);
+
+}
+
 
 /************************************************
  * DELETE operation. returns err, response.
@@ -323,6 +376,7 @@ module.exports = {
     get: getRequest,
     put: putRequest,
     post: postRequest,
+    postJSON: postJSON,
     delete: deleteRequest,
     getModules: getModules,
     getModuleItems: getModuleItems,
