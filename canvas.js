@@ -1,18 +1,17 @@
-/*eslint-env node, es6*/
-/*eslint no-unused-vars:1*/
 /*eslint no-console:0*/
 
 /* ../../ so it can be used in a module */
-var auth;
 try {
     auth = require('../../auth.json');
 } catch (e) {
     auth = { token: '' };
 }
-// const auth = require('./auth.json');
+// var auth = require('./auth.json');
 const request = require('request');
 
 var apiCounter = 0;
+var auth;
+var throttle = 500;
 
 // Always set per_page? 
 
@@ -22,7 +21,7 @@ var apiCounter = 0;
  * Adds protocol and domain to 
  * url if missing
  ******************************/
-function urlCleaner(url) {
+function formatURL(url) {
     if (url.search(/https?:\/\/byui.instructure.com/) >= 0) {
         return url;
     } else {
@@ -36,10 +35,10 @@ function urlCleaner(url) {
  * be necessary. returns to cb given
  * to original function
  ************************************/
-function paginate(response, caller, data, cb) {
+function paginate(response, caller, data, finalCb) {
     if (response.headers.link == undefined) {
         /* No pagination = exit wrapper */
-        cb(null, data);
+        finalCb(null, data);
     } else {
         /* pagination will occur! */
         /* Canvas return string of XML, filter to XML tag */
@@ -48,10 +47,10 @@ function paginate(response, caller, data, cb) {
         })[0];
         /* filter <> and other characters out of url */
         if (link == undefined || link.length == 0) {
-            cb(null, data);
+            finalCb(null, data);
         } else {
             var pageinateUrl = link.split('<')[1].split('>')[0];
-            caller(pageinateUrl, cb, data);
+            caller(pageinateUrl, finalCb, data);
         }
     }
 }
@@ -61,6 +60,7 @@ function paginate(response, caller, data, cb) {
  * to ensure we don't get a 403 from throttling
  ***********************************************/
 function checkRequestsRemaining(response, cb) {
+    // throttle = response.headers['x-rate-limit-remaining'] < 200;
     if (response.headers['x-rate-limit-remaining'] < 150) {
         // console.log(response.headers['x-rate-limit-remaining']);
         console.log('Canvas servers are melting. Give them a minute to cool down.');
@@ -85,84 +85,93 @@ function validateParams(url, cb, obj) {
     }
 }
 
+
+function sendRequest(reqObj, cb) {
+
+    apiCounter++;
+
+    /* Send the request */
+    request(reqObj, (err, response, body) => {
+        /* Check the throttle and wait if needed */
+        checkRequestsRemaining(response, () => {
+            if (err) {
+                cb(err, response, body);
+            } else if (response.statusCode < 200 || response.statusCode >= 300) {
+                cb(new Error(`Status Code ${response.statusCode} | ${body}`), response, body);
+            } else {
+                /* parse the body if it's a string */
+                if (typeof body === 'string') {
+                    try {
+                        body = JSON.parse(body);
+                    } catch (e) {
+                        cb(e, response, body);
+                    }
+                }
+                cb(null, response, body);
+            }
+        });
+    });
+}
+
 /* END INTERNAL HELPER FUNCTIONS */
 
 
 /* START EXTERNAL FUNCTIONS */
 
-/* START CRUD FUNCTIONS */
-
 /*************************************************
  * GET operation. returns err, data
  * DOES NOT exit the wrapper unless an err occurs
  *************************************************/
-const getRequest = function (url, cb, data = []) {
-    if (!validateParams(url, cb, null)) {
-        cb(new Error('Invalid parameters sent'));
+const getRequest = function (url, finalCb, data = []) {
+    if (!validateParams(url, finalCb, null)) {
+        finalCb(new Error('Invalid parameters sent'));
         return;
     }
-    url = urlCleaner(url);
 
-    apiCounter++;
-    request.get(url, (err, response, body) => {
-        if (err) {
-            cb(err, null);
-            return;
-        } else if (response.statusCode > 300 || response.statusCode < 200) {
-            cb(new Error(`Status Code: ${response.statusCode} | ${response.body}`));
-            return;
+    var getObj = {
+        method: 'GET',
+        url: formatURL(url),
+        headers: {
+            'Authorization': `Bearer ${auth.token}`
         }
 
-        checkRequestsRemaining(response, () => {
-            try {
-                body = JSON.parse(body);
-            } catch (e) {
-                cb(e, null);
-                return;
-            }
-            data = data.concat(body);
+    };
 
-            paginate(response, getRequest, data, cb);
-        });
-    }).auth(null, null, true, auth.token);
+    sendRequest(getObj, (err, response, body) => {
+        if (err) {
+            finalCb(err, null);
+            return;
+        }
+        data = data.concat(body);
+        paginate(response, getRequest, data, finalCb);
+    });
 };
 
 /*******************************************
  * PUT request. requires a url & putObject
  * returns err, response
  ******************************************/
-const putRequest = function (url, putObj, cb) {
-    if (!validateParams(url, cb, putObj)) {
-        cb(new Error('Invalid parameters sent'));
+const putRequest = function (url, putParams, finalCb) {
+    if (!validateParams(url, finalCb, putParams)) {
+        finalCb(new Error('Invalid parameters sent'));
         return;
     }
-    url = urlCleaner(url);
+    var putObj = {
+        url: formatURL(url),
+        method: 'PUT',
+        form: putParams,
+        headers: {
+            'x-api-token': auth.token
+        }
+    };
 
-    apiCounter++;
-    request.put({
-        url: url,
-        form: putObj
-    }, (err, response, body) => {
+    sendRequest(putObj, (err, response, body) => {
         if (err) {
-            cb(err, response);
-            return;
-        } else if (response.statusCode > 300 || response.statusCode < 200) {
-            // console.log(`Status Code: ${response.statusCode} | ${response.body}`);
-            cb(new Error(`Status Code: ${response.statusCode} | ${response.body}`));
+            finalCb(err, null);
             return;
         }
-
-        checkRequestsRemaining(response, () => {
-            try {
-                body = JSON.parse(body);
-            } catch (e) {
-                cb(e, null);
-                return;
-            }
-
-            cb(null, body);
-        });
-    }).auth(null, null, true, auth.token);
+        finalCb(null, body);
+    });
 };
 
 /****************************************
@@ -175,7 +184,7 @@ const postRequest = function (url, postObj, cb) {
         return;
     }
 
-    url = urlCleaner(url);
+    url = formatURL(url);
     var settings = {
         url: url,
         form: postObj
@@ -208,7 +217,7 @@ const postJSON = function (url, postObj, cb) {
         cb(new Error('Invalid parameters sent'));
         return;
     }
-    url = urlCleaner(url);
+    url = formatURL(url);
 
     var settings = {
         url: url,
@@ -271,7 +280,7 @@ const deleteRequest = function (url, cb) {
         cb(new Error('Invalid parameters sent'));
         return;
     }
-    url = urlCleaner(url);
+    url = formatURL(url);
 
     apiCounter++;
     request.delete(url, (err, response, body) => {
@@ -362,8 +371,6 @@ const getQuizQuestions = function (courseId, quizId, cb) {
     getRequest(url, cb);
 };
 
-/* END EXTERNAL FUNCTIONS */
-
 /************************************************
  * overwrites auth.token so the wrapper can be 
  * used by different users in 1 program
@@ -372,10 +379,14 @@ function changeAuth(token) {
     auth.token = token;
 }
 
+/* END EXTERNAL FUNCTIONS */
+
+
 module.exports = {
     apiCount: apiCounter,
     get: getRequest,
     put: putRequest,
+    // putJSON: putJOSN,
     post: postRequest,
     postJSON,
     delete: deleteRequest,
