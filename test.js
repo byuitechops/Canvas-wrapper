@@ -7,26 +7,79 @@ const auth = require('./auth.json').token;
 canvas.changeUser(auth);
 
 /* GET with pagination */
-canvas.get('/api/v1/accounts/13/courses', (err, courses) => {
+const noPaginate = canvas.get('/api/v1/accounts/13/courses', (err, courses) => {
     if (err) {
         console.error(`ERR: ${err}`);
         return;
     }
 
-    console.log(courses.length);
+    console.log(`GET with pagination ${courses.length}`);
     return;
 });
 
 /* GET without pagination */
-// canvas.get('/api/v1/accounts/13', (err, user) => {
+const paginate = canvas.get('/api/v1/accounts/13', (err, user) => {
+    if (err) {
+        console.error(err);
+        return;
+    }
+
+    console.log(`GET without pagination ${user}`);
+    return;
+});
+
+/* basic PUT */
+const put = canvas.put('', (err, data) => {
+    if (err) {
+        console.error(err);
+        return;
+    }
+    console.log(data);
+});
+
+/* PUT as type JSON */
+// const putJSON = canvas.put('', (err, data) => {
 //     if (err) {
 //         console.error(err);
 //         return;
 //     }
-
-//     console.log(user);
-//     return;
 // });
+
+/* basic POST */
+const post = canvas.post('', (err, data) => {
+    if (err) {
+        console.error(err);
+        return;
+    }
+    console.log(data);
+});
+
+/* post as type JSON */
+const postJSON = canvas.postJSON('', (err, data) => {
+    if (err) {
+        console.error(err);
+        return;
+    }
+    console.log(data);
+});
+
+/* basic delete */
+const deleteReq = canvas.delete('', (err, data) => {
+    if (err) {
+        console.error(err);
+        return;
+    }
+    console.log(data);
+});
+
+
+paginate();
+noPaginate();
+put();
+// putJSON();
+post();
+postJSON();
+deleteReq();
 
 
 // canvas.getModules(2034, (err, moduels) => {

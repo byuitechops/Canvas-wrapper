@@ -13,8 +13,6 @@ var apiCounter = 0;
 var auth;
 var throttle = 500;
 
-// Always set per_page? 
-
 /* START INTERNAL HELPER FUNCTIONS */
 
 /******************************
@@ -157,11 +155,11 @@ const putRequest = function (url, putParams, finalCb) {
         return;
     }
     var putObj = {
-        url: formatURL(url),
         method: 'PUT',
+        url: formatURL(url),
         form: putParams,
         headers: {
-            'x-api-token': auth.token
+            'Authorization': `Bearer ${auth.token}`
         }
     };
 
@@ -178,32 +176,28 @@ const putRequest = function (url, putParams, finalCb) {
  * POST request. takes URL and postObj.
  * returns err, response
  ***************************************/
-const postRequest = function (url, postObj, cb) {
-    if (!validateParams(url, cb, postObj)) {
-        cb(new Error('Invalid parameters sent'));
+const postRequest = function (url, postParams, finalCb) {
+    if (!validateParams(url, finalCb, postParams)) {
+        finalCb(new Error('Invalid parameters sent'));
         return;
     }
 
-    url = formatURL(url);
-    var settings = {
-        url: url,
-        form: postObj
+    // url = formatURL(url);
+    var postObj = {
+        method: 'POST',
+        url: formatURL(url),
+        form: postParams,
+        headers: {
+            'Authorization': `Bearer ${auth.token}`
+        }
     };
 
-    post(settings, (err, response, body) => {
+    sendRequest(postObj, (err, response, body) => {
         if (err) {
-            cb(err, null);
+            finalCb(err, null);
             return;
         }
-        /* parse JSON response */
-        try {
-            body = JSON.parse(body);
-        } catch (e) {
-            cb(e, null);
-            return;
-        }
-
-        cb(null, body);
+        finalCb(null, body);
     });
 };
 
@@ -211,97 +205,58 @@ const postRequest = function (url, postObj, cb) {
  * POSTJSON returns err, response
  * no pagination
  ***********************************************/
-const postJSON = function (url, postObj, cb) {
+const postJSON = function (url, postParams, finalCb) {
     /* validate args */
-    if (!validateParams(url, cb, postObj)) {
-        cb(new Error('Invalid parameters sent'));
+    if (!validateParams(url, finalCb, postParams)) {
+        finalCb(new Error('Invalid parameters sent'));
         return;
     }
-    url = formatURL(url);
 
-    var settings = {
-        url: url,
+    var postObj = {
+        method: 'POST',
+        url: formatURL(url),
         json: true,
-        body: postObj
+        body: postParams,
+        headers: {
+            'Authorization': `Bearer ${auth.token}`
+        }
     };
 
-    post(settings, (err, response, body) => {
+    sendRequest(postObj, (err, response, body) => {
         if (err) {
-            cb(err, null);
+            finalCb(err, null);
             return;
         }
-        /* parse the body if a string is returned. Normally returns an object */
-        if (typeof body === 'string') {
-            try {
-                body = JSON.parse(body);
-            } catch (e) {
-                cb(e, null);
-                return;
-            }
-        }
-
-        cb(null, body);
+        finalCb(null, body);
     });
 };
-
-/*********************************************
- * Makes a POST request. Abstracted by 
- * postRequest and postJSON
- *********************************************/
-function post(settings, wrapperCb) {
-    apiCounter++;
-
-    /* make the post request */
-    request.post(settings, (err, response, body) => {
-        /* err if needed */
-        if (err) {
-            wrapperCb(err, response, body);
-            return;
-        } else if (response.statusCode > 300 || response.statusCode < 200) {
-            wrapperCb(new Error(`Status Code: ${response.statusCode} | ${response.body}`), response, body);
-            return;
-        }
-
-        checkRequestsRemaining(response, () => {
-            wrapperCb(null, response, body);
-        });
-
-    }).auth(null, null, true, auth.token);
-}
-
 
 /************************************************
  * DELETE operation. returns err, response.
  * no pagination
  ************************************************/
-const deleteRequest = function (url, cb) {
+const deleteRequest = function (url, finalCb) {
     // console.log('API CALLS MADE:', apiCounter);
-    if (!validateParams(url, cb, null)) {
-        cb(new Error('Invalid parameters sent'));
+    if (!validateParams(url, finalCb, null)) {
+        finalCb(new Error('Invalid parameters sent'));
         return;
     }
-    url = formatURL(url);
 
-    apiCounter++;
-    request.delete(url, (err, response, body) => {
+    var deleteObj = {
+        method: 'DELETE',
+        url: formatURL(url),
+        headers: {
+            'Authorization': `Bearer ${auth.token}`
+        }
+    };
+
+    sendRequest(deleteObj, (err, response, body) => {
         if (err) {
-            cb(err, response);
-            return;
-        } else if (response.statusCode > 300 || response.statusCode < 200) {
-            cb(new Error(`Status Code: ${response.statusCode} | ${response.body}`));
+            finalCb(err, null);
             return;
         }
-
-        checkRequestsRemaining(response, () => {
-            try {
-                body = JSON.parse(body);
-            } catch (e) {
-                cb(e, null);
-                return;
-            }
-            cb(null, body);
-        });
-    }).auth(null, null, true, auth.token);
+        finalCb(null, body);
+    });
 };
 
 /* END CRUD FUNCTIONS */
