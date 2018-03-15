@@ -7,79 +7,96 @@ const auth = require('./auth.json').token;
 canvas.changeUser(auth);
 
 /* GET with pagination */
-const noPaginate = canvas.get('/api/v1/accounts/13/courses', (err, courses) => {
-    if (err) {
-        console.error(`ERR: ${err}`);
-        return;
-    }
+function noPaginate() {
+    canvas.get('/api/v1/accounts/13/courses', (err, courses) => {
+        if (err) {
+            console.error(`ERR: ${err}`);
+            return;
+        }
 
-    console.log(`GET with pagination ${courses.length}`);
-    return;
-});
+        console.log(`GET with pagination ${courses.length}`);
+        return;
+    });
+}
 
 /* GET without pagination */
-const paginate = canvas.get('/api/v1/accounts/13', (err, user) => {
-    if (err) {
-        console.error(err);
-        return;
-    }
+function paginate() {
+    canvas.get('/api/v1/accounts/13', (err, user) => {
+        if (err) {
+            console.error(err);
+            return;
+        }
 
-    console.log(`GET without pagination ${user}`);
-    return;
-});
+        console.log(`GET without pagination ${user}`);
+        return;
+    });
+}
 
 /* basic PUT */
-const put = canvas.put('', (err, data) => {
-    if (err) {
-        console.error(err);
-        return;
-    }
-    console.log(data);
-});
+function put() {
+    canvas.put('/api/v1/courses/92/pages/how%20to%20understand%20due%20dates', { 'wiki_page[front_page]': true }, (err, data) => {
+        if (err) {
+            console.error(err);
+            return;
+        }
+        // console.log(data);
+        console.log('put worked');
+    });
+}
 
 /* PUT as type JSON */
-// const putJSON = canvas.put('', (err, data) => {
-//     if (err) {
-//         console.error(err);
-//         return;
-//     }
-// });
+function putJSON() {
+    canvas.put('/api/v1/courses/92/modules/923', {'module[name]': 'I\'ve been renamed'}, (err, data) => {
+        if (err) {
+            console.error(err);
+            return;
+        }
+        console.log(data);
+    });
+}
 
 /* basic POST */
-const post = canvas.post('', (err, data) => {
-    if (err) {
-        console.error(err);
-        return;
-    }
-    console.log(data);
-});
+function post() {
+    canvas.post('/api/v1/courses/92/modules', { 'module[name]': 'testModule2' }, (err, data) => {
+        if (err) {
+            console.error(err);
+            return;
+        }
+        console.log(data);
+    });
+}
 
 /* post as type JSON */
-const postJSON = canvas.postJSON('', (err, data) => {
-    if (err) {
-        console.error(err);
-        return;
-    }
-    console.log(data);
-});
+function postJSON() {
+    canvas.postJSON('', {}, (err, data) => {
+        if (err) {
+            console.error(err);
+            return;
+        }
+        console.log(data);
+    });
+}
 
 /* basic delete */
-const deleteReq = canvas.delete('', (err, data) => {
-    if (err) {
-        console.error(err);
-        return;
-    }
-    console.log(data);
-});
+function deleteReq() {
+    canvas.delete('/api/v1/courses/92/modules/924', (err, data) => {
+        if (err) {
+            console.error(err);
+            return;
+        }
+        console.log(data);
+    });
+}
 
 
-paginate();
-noPaginate();
-put();
-// putJSON();
-post();
-postJSON();
-deleteReq();
+
+// paginate();
+// noPaginate();
+// put(); // works
+putJSON();
+// post(); // works
+// postJSON();
+// deleteReq(); // works
 
 
 // canvas.getModules(2034, (err, moduels) => {

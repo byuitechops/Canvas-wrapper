@@ -11,7 +11,6 @@ const request = require('request');
 
 var apiCounter = 0;
 var auth;
-var throttle = 500;
 
 /* START INTERNAL HELPER FUNCTIONS */
 
@@ -83,7 +82,10 @@ function validateParams(url, cb, obj) {
     }
 }
 
-
+/*****************************************
+ * sends an API call with the given object
+ * All calls come through this function
+ *****************************************/
 function sendRequest(reqObj, cb) {
 
     apiCounter++;
@@ -116,10 +118,10 @@ function sendRequest(reqObj, cb) {
 
 /* START EXTERNAL FUNCTIONS */
 
-/*************************************************
- * GET operation. returns err, data
- * DOES NOT exit the wrapper unless an err occurs
- *************************************************/
+/***********************************************
+ * GET operation. Returns an Array of results, 
+ * even if there is only 1 result
+ ***********************************************/
 const getRequest = function (url, finalCb, data = []) {
     if (!validateParams(url, finalCb, null)) {
         finalCb(new Error('Invalid parameters sent'));
@@ -145,10 +147,9 @@ const getRequest = function (url, finalCb, data = []) {
     });
 };
 
-/*******************************************
- * PUT request. requires a url & putObject
- * returns err, response
- ******************************************/
+/****************************************
+ * PUT request with params as type FORM
+ ****************************************/
 const putRequest = function (url, putParams, finalCb) {
     if (!validateParams(url, finalCb, putParams)) {
         finalCb(new Error('Invalid parameters sent'));
@@ -172,10 +173,41 @@ const putRequest = function (url, putParams, finalCb) {
     });
 };
 
-/****************************************
- * POST request. takes URL and postObj.
- * returns err, response
- ***************************************/
+
+/****************************************************
+ * PUT request with params as type Application/JSON
+ * request library returns a parsed object
+ ***************************************************/
+const putJSON = function (url, putParams, finalCb) {
+    /* validate args */
+    if (!validateParams(url, finalCb, putParams)) {
+        finalCb(new Error('Invalid parameters sent'));
+        return;
+    }
+
+    var putObj = {
+        method: 'PUT',
+        url: formatURL(url),
+        json: true,
+        body: putParams,
+        headers: {
+            'Authorization': `Bearer ${auth.token}`
+        }
+    };
+
+    sendRequest(putObj, (err, response, body) => {
+        if (err) {
+            finalCb(err, null);
+            return;
+        }
+        finalCb(null, body);
+    });
+};
+
+
+/*****************************************
+ * POST request with params as type FORM
+ *****************************************/
 const postRequest = function (url, postParams, finalCb) {
     if (!validateParams(url, finalCb, postParams)) {
         finalCb(new Error('Invalid parameters sent'));
@@ -201,10 +233,10 @@ const postRequest = function (url, postParams, finalCb) {
     });
 };
 
-/************************************************
- * POSTJSON returns err, response
- * no pagination
- ***********************************************/
+/****************************************************
+ * POST request with params as type Application/JSON
+ * request library returns a parsed object
+ ***************************************************/
 const postJSON = function (url, postParams, finalCb) {
     /* validate args */
     if (!validateParams(url, finalCb, postParams)) {
@@ -232,8 +264,7 @@ const postJSON = function (url, postParams, finalCb) {
 };
 
 /************************************************
- * DELETE operation. returns err, response.
- * no pagination
+ * DELETE operation
  ************************************************/
 const deleteRequest = function (url, finalCb) {
     // console.log('API CALLS MADE:', apiCounter);
@@ -341,7 +372,7 @@ module.exports = {
     apiCount: apiCounter,
     get: getRequest,
     put: putRequest,
-    // putJSON: putJOSN,
+    putJSON: putJSON,
     post: postRequest,
     postJSON,
     delete: deleteRequest,
