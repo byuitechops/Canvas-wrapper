@@ -3,31 +3,34 @@
 
 const canvas = require('./canvas.js');
 const auth = require('./auth.json').token;
+const calcElapsedTime = require('./elapsedTime.js');
 
 canvas.changeUser(auth);
 
 /* GET with pagination */
 function noPaginate() {
+    var startTime = new Date();
     canvas.get('/api/v1/accounts/', (err, accounts) => {
         if (err) {
             console.error(`ERR: ${err}`);
             return;
         }
 
-        console.log(`GET without pagination ${accounts.length}`);
+        console.log(`GET without pagination\nAccounts retrieved: ${accounts.length}. Elapsed time: ${calcElapsedTime(startTime)}`);
         return;
     });
 }
 
 /* GET without pagination */
 function paginate() {
+    var startTime = new Date();
     canvas.get('/api/v1/accounts/13/courses', (err, courses) => {
         if (err) {
             console.error(err);
             return;
         }
 
-        console.log(`GET with pagination ${courses.length}`);
+        console.log(`GET with pagination\nCourses retrieved: ${courses.length}. Elapsed time: ${calcElapsedTime(startTime)}`);
         return;
     });
 }
