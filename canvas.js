@@ -1,5 +1,5 @@
 /*eslint no-console:0*/
-
+var auth;
 /* ../../ so it can be used in a module */
 try {
     auth = require('../../auth.json');
@@ -11,9 +11,8 @@ const request = require('request');
 const asyncLib = require('async');
 
 var apiCounter = 0;
-var auth;
-var rateLimit = 500;
-var queue = asyncLib.queue(preFlightCheck, 20);
+var rateLimit = 100;
+var queue = asyncLib.queue(preFlightCheck, 1);
 
 /* START INTERNAL HELPER FUNCTIONS */
 
@@ -48,7 +47,16 @@ function paginate(response, caller, data, finalCb) {
 function updateRateLimit(response, cb) {
     /* if there is no response get one and try again */
     if (response === null) {
-        request.get('api/v1/', (err, response) => {
+        var derp = {
+            method: 'GET',
+            url: formatURL('/api/v1/accounts/13'),
+            headers: {
+                'Authorization': `Bearer ${auth.token}`
+            }
+        };
+
+        request.get(derp, (err, response) => {
+            if (err) {console.error(err);}
             updateRateLimit(response, cb);
         });
     } else {
@@ -103,7 +111,7 @@ function preFlightCheck(reqObj, reqCb) {
                 queue.unshift(reqObj, reqCb);
             });
         }, 10000);
-        queue.unshift(reqObj, reqCb);
+        // queue.unshift(reqObj, reqCb);
     }
 }
 
