@@ -13,6 +13,7 @@ const asyncLib = require('async');
 var apiCounter = 0;
 var rateLimit = 100;
 var queue = asyncLib.queue(preFlightCheck, 1);
+const buffer = 150;
 
 /* START INTERNAL HELPER FUNCTIONS */
 
@@ -57,10 +58,12 @@ function updateRateLimit(response, cb) {
 
         request.get(derp, (err, response) => {
             if (err) {console.error(err);}
+            // rateLimit = response.headers['x-rate-limit-remaining'];
+            // cb();
             updateRateLimit(response, cb);
         });
     } else {
-        if (response.headers['x-rate-limit-remaining'] < 150 != undefined) {
+        if (response.headers['x-rate-limit-remaining'] != undefined) {
             rateLimit = response.headers['x-rate-limit-remaining'];
         }
         cb();
@@ -101,17 +104,19 @@ function sendRequest(reqObj, reqCb) {
  * 
  *****************************************/
 function preFlightCheck(reqObj, reqCb) {
-    if (rateLimit >= 150) {
+    if (rateLimit >= buffer) {
         sendRequest(reqObj, reqCb);
     } else {
+        // queue.pause();
+        // sendRequest(reqObj, reqCb);
+        
+            
         console.log('Canvas servers are melting. Give them a moment to cool down.');
         setTimeout(() => {
             updateRateLimit(null, () => {
-                // preFlightCheck(reqObj, reqCb);
-                queue.unshift(reqObj, reqCb);
+                sendRequest(reqObj, reqCb);
             });
         }, 10000);
-        // queue.unshift(reqObj, reqCb);
     }
 }
 
@@ -164,7 +169,6 @@ const getRequest = function (url, finalCb, data = [], paginated = false) {
         headers: {
             'Authorization': `Bearer ${auth.token}`
         }
-
     };
 
     if (paginated) {
