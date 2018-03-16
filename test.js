@@ -8,26 +8,26 @@ canvas.changeUser(auth);
 
 /* GET with pagination */
 function noPaginate() {
-    canvas.get('/api/v1/accounts/13/courses', (err, courses) => {
+    canvas.get('/api/v1/accounts/', (err, courses) => {
         if (err) {
             console.error(`ERR: ${err}`);
             return;
         }
 
-        console.log(`GET with pagination ${courses.length}`);
+        console.log(`GET without pagination ${courses.length}`);
         return;
     });
 }
 
 /* GET without pagination */
 function paginate() {
-    canvas.get('/api/v1/accounts/13', (err, user) => {
+    canvas.get('/api/v1/accounts/13', (err, accounts) => {
         if (err) {
             console.error(err);
             return;
         }
 
-        console.log(`GET without pagination ${user}`);
+        console.log(`GET with pagination ${accounts.length}`);
         return;
     });
 }
@@ -90,10 +90,10 @@ function deleteReq() {
 
 
 
-// paginate();
-// noPaginate();
+paginate();
+noPaginate();
 // put(); // works
-putJSON();
+// putJSON();
 // post(); // works
 // postJSON();
 // deleteReq(); // works

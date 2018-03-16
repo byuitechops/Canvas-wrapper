@@ -8,24 +8,14 @@ try {
 }
 // var auth = require('./auth.json');
 const request = require('request');
+const asyncLib = require('async');
 
 var apiCounter = 0;
 var auth;
+var rateLimit = 500;
+var queue = asyncLib.queue(preFlightCheck, 20);
 
 /* START INTERNAL HELPER FUNCTIONS */
-
-/******************************
- * Adds protocol and domain to 
- * url if missing
- ******************************/
-function formatURL(url) {
-    if (url.search(/https?:\/\/byui.instructure.com/) >= 0) {
-        return url;
-    } else {
-        url = `https://byui.instructure.com${url}`;
-        return url;
-    }
-}
 
 /*************************************
  * handles calls where pagination may
@@ -47,23 +37,86 @@ function paginate(response, caller, data, finalCb) {
             finalCb(null, data);
         } else {
             var pageinateUrl = link.split('<')[1].split('>')[0];
-            caller(pageinateUrl, finalCb, data);
+            caller(pageinateUrl, finalCb, data, true);
         }
     }
 }
 
-/***********************************************
- * checks the x-rate-limit-remaining param 
- * to ensure we don't get a 403 from throttling
- ***********************************************/
-function checkRequestsRemaining(response, cb) {
-    // throttle = response.headers['x-rate-limit-remaining'] < 200;
-    if (response.headers['x-rate-limit-remaining'] < 150) {
-        // console.log(response.headers['x-rate-limit-remaining']);
-        console.log('Canvas servers are melting. Give them a minute to cool down.');
-        setTimeout(cb, 10000);
+/****************************************
+ * 
+ ****************************************/
+function updateRateLimit(response, cb) {
+    /* if there is no response get one and try again */
+    if (response === null) {
+        request.get('api/v1/', (err, response) => {
+            updateRateLimit(response, cb);
+        });
     } else {
+        if (response.headers['x-rate-limit-remaining'] < 150 != undefined) {
+            rateLimit = response.headers['x-rate-limit-remaining'];
+        }
         cb();
+    }
+}
+
+/*****************************************
+ * sends an API call with the given object
+ * All calls come through this function
+ *****************************************/
+function sendRequest(reqObj, reqCb) {
+    apiCounter++;
+    /* Send the request */
+    request(reqObj, (err, response, body) => {
+        /* Check the rateLimit and wait if needed */
+        updateRateLimit(response, () => {
+            if (err) {
+                reqCb(err, response, body);
+            } else if (response.statusCode < 200 || response.statusCode >= 300) {
+                reqCb(new Error(`Status Code ${response.statusCode} | ${body}`), response, body);
+            } else {
+                /* parse the body if it's a string */
+                if (typeof body === 'string') {
+                    try {
+                        body = JSON.parse(body);
+                    } catch (e) {
+                        reqCb(e, response, body);
+                    }
+                }
+                reqCb(null, response, body);
+            }
+        });
+    });
+}
+
+/*****************************************
+ * 
+ * 
+ *****************************************/
+function preFlightCheck(reqObj, reqCb) {
+    if (rateLimit >= 150) {
+        sendRequest(reqObj, reqCb);
+    } else {
+        console.log('Canvas servers are melting. Give them a moment to cool down.');
+        setTimeout(() => {
+            updateRateLimit(null, () => {
+                // preFlightCheck(reqObj, reqCb);
+                queue.unshift(reqObj, reqCb);
+            });
+        }, 10000);
+        queue.unshift(reqObj, reqCb);
+    }
+}
+
+/******************************
+ * Adds protocol and domain to 
+ * url if missing
+ ******************************/
+function formatURL(url) {
+    if (url.search(/https?:\/\/byui.instructure.com/) >= 0) {
+        return url;
+    } else {
+        url = `https://byui.instructure.com${url}`;
+        return url;
     }
 }
 
@@ -82,37 +135,6 @@ function validateParams(url, cb, obj) {
     }
 }
 
-/*****************************************
- * sends an API call with the given object
- * All calls come through this function
- *****************************************/
-function sendRequest(reqObj, cb) {
-
-    apiCounter++;
-
-    /* Send the request */
-    request(reqObj, (err, response, body) => {
-        /* Check the throttle and wait if needed */
-        checkRequestsRemaining(response, () => {
-            if (err) {
-                cb(err, response, body);
-            } else if (response.statusCode < 200 || response.statusCode >= 300) {
-                cb(new Error(`Status Code ${response.statusCode} | ${body}`), response, body);
-            } else {
-                /* parse the body if it's a string */
-                if (typeof body === 'string') {
-                    try {
-                        body = JSON.parse(body);
-                    } catch (e) {
-                        cb(e, response, body);
-                    }
-                }
-                cb(null, response, body);
-            }
-        });
-    });
-}
-
 /* END INTERNAL HELPER FUNCTIONS */
 
 
@@ -122,7 +144,7 @@ function sendRequest(reqObj, cb) {
  * GET operation. Returns an Array of results, 
  * even if there is only 1 result
  ***********************************************/
-const getRequest = function (url, finalCb, data = []) {
+const getRequest = function (url, finalCb, data = [], paginated = false) {
     if (!validateParams(url, finalCb, null)) {
         finalCb(new Error('Invalid parameters sent'));
         return;
@@ -137,14 +159,30 @@ const getRequest = function (url, finalCb, data = []) {
 
     };
 
-    sendRequest(getObj, (err, response, body) => {
+    if (paginated) {
+        queue.unshift(getObj, callReturned);
+    } else {
+        queue.push(getObj, callReturned);
+    }
+
+    function callReturned(err, response, body) {
+        if (err) {
+            finalCb(err);
+            return;
+        }
+
+        data = data.concat(body);
+        paginate(response, getRequest, data, finalCb);
+    }
+
+    /* sendRequest(getObj, (err, response, body) => {
         if (err) {
             finalCb(err, null);
             return;
         }
         data = data.concat(body);
         paginate(response, getRequest, data, finalCb);
-    });
+    }); */
 };
 
 /****************************************
