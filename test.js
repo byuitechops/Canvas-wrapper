@@ -8,26 +8,26 @@ canvas.changeUser(auth);
 
 /* GET with pagination */
 function noPaginate() {
-    canvas.get('/api/v1/accounts/', (err, courses) => {
+    canvas.get('/api/v1/accounts/', (err, accounts) => {
         if (err) {
             console.error(`ERR: ${err}`);
             return;
         }
 
-        console.log(`GET without pagination ${courses.length}`);
+        console.log(`GET without pagination ${accounts.length}`);
         return;
     });
 }
 
 /* GET without pagination */
 function paginate() {
-    canvas.get('/api/v1/accounts/13', (err, accounts) => {
+    canvas.get('/api/v1/accounts/13/courses', (err, courses) => {
         if (err) {
             console.error(err);
             return;
         }
 
-        console.log(`GET with pagination ${accounts.length}`);
+        console.log(`GET with pagination ${courses.length}`);
         return;
     });
 }
