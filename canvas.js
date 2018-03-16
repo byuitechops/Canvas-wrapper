@@ -12,7 +12,7 @@ const asyncLib = require('async');
 
 var apiCounter = 0;
 var rateLimit = 100;
-var queue = asyncLib.queue(preFlightCheck, 1);
+var queue = asyncLib.queue(preFlightCheck, 5);
 const buffer = 150;
 
 /* START INTERNAL HELPER FUNCTIONS */
@@ -50,19 +50,22 @@ function updateRateLimit(response, cb) {
     if (response === null) {
         var derp = {
             method: 'GET',
-            url: formatURL('/api/v1/accounts/13'),
+            url: formatURL('/apl/v1/accounts/13'),
             headers: {
                 'Authorization': `Bearer ${auth.token}`
             }
         };
 
         request.get(derp, (err, response) => {
-            if (err) {console.error(err);}
-            // rateLimit = response.headers['x-rate-limit-remaining'];
-            // cb();
-            updateRateLimit(response, cb);
+            if (err) 
+                cb(err);
+            else if (response.statusCode < 200 || response.statusCode >= 300)
+                cb(new Error(`Status Code ${response.statusCode}`));
+            else
+                updateRateLimit(response, cb);
         });
     } else {
+        // TODO We need to handle when this fails
         if (response.headers['x-rate-limit-remaining'] != undefined) {
             rateLimit = response.headers['x-rate-limit-remaining'];
         }
@@ -78,7 +81,7 @@ function sendRequest(reqObj, reqCb) {
     apiCounter++;
     /* Send the request */
     request(reqObj, (err, response, body) => {
-        /* Check the rateLimit and wait if needed */
+        /* Update the global rateLimit */
         updateRateLimit(response, () => {
             if (err) {
                 reqCb(err, response, body);
@@ -105,18 +108,27 @@ function sendRequest(reqObj, reqCb) {
  *****************************************/
 function preFlightCheck(reqObj, reqCb) {
     if (rateLimit >= buffer) {
+        if (queue.paused) queue.resume();
         sendRequest(reqObj, reqCb);
     } else {
-        // queue.pause();
-        // sendRequest(reqObj, reqCb);
-        
-            
-        console.log('Canvas servers are melting. Give them a moment to cool down.');
-        setTimeout(() => {
-            updateRateLimit(null, () => {
-                sendRequest(reqObj, reqCb);
-            });
-        }, 10000);
+        if (!queue.paused) {
+            queue.pause();
+            console.log('Canvas servers are melting. Give them a moment to cool down.');
+        }
+
+        updateRateLimit(null, (rateErr) => {
+            if (rateErr) {
+                console.error(`Error while updating the rateLimit. Reverting to timeouts. ${rateErr}`);
+                setTimeout(() => {
+                    queue.resume();
+                    sendRequest(reqObj, reqCb);
+                }, 10000);
+                return;
+            }
+            setTimeout(() => {
+                preFlightCheck(reqObj, reqCb);
+            }, 1000);
+        });
     }
 }
 
