@@ -1,31 +1,26 @@
-/*eslint no-console:0*/
-
-/* ../../ so it can be used in a module */
+/* eslint no-console:0 */
+var auth;
+/* ../../ so it can be used in a child module */
 try {
     auth = require('../../auth.json');
 } catch (e) {
-    auth = { token: '' };
+    auth = {
+        token: ''
+    };
 }
-// var auth = require('./auth.json');
-const request = require('request');
 
-var apiCounter = 0;
-var auth;
+const request = require('request');
+const asyncLib = require('async');
+
+/* SETTINGS */
+var domain = 'byui'; // default to byui
+var apiCounter = 0; // counts api calls made
+var rateLimit = 700; // used for throttling. 700 is the max value
+var concurrency = 20; // max number of operations running at any one time
+const buffer = 150; // once the rateLimit passes this point we pause the queue
+var queue = asyncLib.queue(preFlightCheck, concurrency);
 
 /* START INTERNAL HELPER FUNCTIONS */
-
-/******************************
- * Adds protocol and domain to 
- * url if missing
- ******************************/
-function formatURL(url) {
-    if (url.search(/https?:\/\/byui.instructure.com/) >= 0) {
-        return url;
-    } else {
-        url = `https://byui.instructure.com${url}`;
-        return url;
-    }
-}
 
 /*************************************
  * handles calls where pagination may
@@ -47,23 +42,125 @@ function paginate(response, caller, data, finalCb) {
             finalCb(null, data);
         } else {
             var pageinateUrl = link.split('<')[1].split('>')[0];
-            caller(pageinateUrl, finalCb, data);
+            caller(pageinateUrl, finalCb, data, true);
         }
     }
 }
 
-/***********************************************
- * checks the x-rate-limit-remaining param 
- * to ensure we don't get a 403 from throttling
- ***********************************************/
-function checkRequestsRemaining(response, cb) {
-    // throttle = response.headers['x-rate-limit-remaining'] < 200;
-    if (response.headers['x-rate-limit-remaining'] < 150) {
-        // console.log(response.headers['x-rate-limit-remaining']);
-        console.log('Canvas servers are melting. Give them a minute to cool down.');
-        setTimeout(cb, 10000);
+/**********************************************************
+ * Updates the rateLimit variable using the given response.
+ * If no response is provided, a request is made & 
+ * updateRateLimit sends the response to itself
+ **********************************************************/
+function updateRateLimit(response, cb) {
+    if (response !== null) {
+        /* update rateLimit global variable */
+        if (response.headers['x-rate-limit-remaining'] != undefined) {
+            rateLimit = response.headers['x-rate-limit-remaining'];
+            cb();
+        } else {
+            /* if unable to get needed... poop. this could easily cause an infinite loop... */
+            // updateRateLimit(null, cb);
+            cb(new Error('unable to read x-rate-limit-remaining property'));
+        }
     } else {
-        cb();
+        /* if there is no response get one and try again */
+        var derp = {
+            method: 'GET',
+            url: formatURL('/api/v1/accounts/13'),
+            headers: {
+                'Authorization': `Bearer ${auth.token}`
+            }
+        };
+        apiCounter++;
+        request.get(derp, (err, response) => {
+            if (err)
+                cb(err);
+            else if (response.statusCode < 200 || response.statusCode >= 300)
+                cb(new Error(`Status Code ${response.statusCode}`));
+            else
+                updateRateLimit(response, cb);
+        });
+    }
+}
+
+/*****************************************
+ * sends an API call with the given object
+ * All calls come through this function
+ *****************************************/
+function sendRequest(reqObj, reqCb) {
+    apiCounter++;
+    /* Send the request */
+    request(reqObj, (err, response, body) => {
+        if (err) {
+            reqCb(err, response, body);
+        } else if (response.statusCode < 200 || response.statusCode >= 300) {
+            reqCb(new Error(`Status Code ${response.statusCode} | ${body}`), response, body);
+        } else {
+            /* Update the global rateLimit */
+            updateRateLimit(response, (updateErr) => {
+                if (updateErr) {
+                    console.error(updateErr);
+                }
+                /* parse the body if it's a string */
+                if (typeof body === 'string') {
+                    try {
+                        body = JSON.parse(body);
+                    } catch (e) {
+                        reqCb(e, response, body);
+                    }
+                }
+                reqCb(null, response, body);
+            });
+        }
+    });
+}
+
+/*******************************************************
+ * Ensures the RateLimit is above the designated buffer
+ * before sending each request. Pauses the queue when
+ * the rateLimit gets below the buffer.
+ *******************************************************/
+function preFlightCheck(reqObj, reqCb) {
+    /* is the rateLimit high enough? */
+    if (rateLimit >= buffer) {
+        /* unpause the queue if needed */
+        if (queue.paused) queue.resume();
+        sendRequest(reqObj, reqCb);
+    } else {
+        /* pause the queue if needed */
+        if (!queue.paused) {
+            queue.pause();
+            console.log('Canvas servers are melting. Give them a moment to cool down.');
+        }
+        /* make a tiny API call to update the rateLimit */
+        updateRateLimit(null, (rateErr) => {
+            if (rateErr) {
+                /* if updating the rateLimit failed, wait 3s and send the request */
+                console.error(`Error while updating the rateLimit. Reverting to timeouts. ${rateErr}`);
+                setTimeout(() => {
+                    queue.resume();
+                    sendRequest(reqObj, reqCb);
+                }, 30000);
+                return;
+            }
+            setTimeout(() => {
+                preFlightCheck(reqObj, reqCb);
+            }, 1000);
+        });
+    }
+}
+
+/******************************
+ * Adds protocol and domain to 
+ * url if missing
+ ******************************/
+function formatURL(url) {
+    if (url.search(/https?:\/\/(?:byui|pathway).instructure.com/) >= 0) {
+        return url;
+    } else {
+        url = `https://${domain}.instructure.com${url}`;
+        return url;
     }
 }
 
@@ -82,37 +179,6 @@ function validateParams(url, cb, obj) {
     }
 }
 
-/*****************************************
- * sends an API call with the given object
- * All calls come through this function
- *****************************************/
-function sendRequest(reqObj, cb) {
-
-    apiCounter++;
-
-    /* Send the request */
-    request(reqObj, (err, response, body) => {
-        /* Check the throttle and wait if needed */
-        checkRequestsRemaining(response, () => {
-            if (err) {
-                cb(err, response, body);
-            } else if (response.statusCode < 200 || response.statusCode >= 300) {
-                cb(new Error(`Status Code ${response.statusCode} | ${body}`), response, body);
-            } else {
-                /* parse the body if it's a string */
-                if (typeof body === 'string') {
-                    try {
-                        body = JSON.parse(body);
-                    } catch (e) {
-                        cb(e, response, body);
-                    }
-                }
-                cb(null, response, body);
-            }
-        });
-    });
-}
-
 /* END INTERNAL HELPER FUNCTIONS */
 
 
@@ -122,7 +188,7 @@ function sendRequest(reqObj, cb) {
  * GET operation. Returns an Array of results, 
  * even if there is only 1 result
  ***********************************************/
-const getRequest = function (url, finalCb, data = []) {
+const getRequest = function (url, finalCb, data = [], paginated = false) {
     if (!validateParams(url, finalCb, null)) {
         finalCb(new Error('Invalid parameters sent'));
         return;
@@ -134,17 +200,23 @@ const getRequest = function (url, finalCb, data = []) {
         headers: {
             'Authorization': `Bearer ${auth.token}`
         }
-
     };
 
-    sendRequest(getObj, (err, response, body) => {
+    if (paginated) {
+        queue.unshift(getObj, callReturned);
+    } else {
+        queue.push(getObj, callReturned);
+    }
+
+    function callReturned(err, response, body) {
         if (err) {
-            finalCb(err, null);
+            finalCb(err);
             return;
         }
+
         data = data.concat(body);
         paginate(response, getRequest, data, finalCb);
-    });
+    }
 };
 
 /****************************************
@@ -164,12 +236,8 @@ const putRequest = function (url, putParams, finalCb) {
         }
     };
 
-    sendRequest(putObj, (err, response, body) => {
-        if (err) {
-            finalCb(err, null);
-            return;
-        }
-        finalCb(null, body);
+    queue.push(putObj, (err, response, data) => {
+        finalCb(err, data);
     });
 };
 
@@ -195,12 +263,8 @@ const putJSON = function (url, putParams, finalCb) {
         }
     };
 
-    sendRequest(putObj, (err, response, body) => {
-        if (err) {
-            finalCb(err, null);
-            return;
-        }
-        finalCb(null, body);
+    queue.push(putObj, (err, response, data) => {
+        finalCb(err, data);
     });
 };
 
@@ -224,12 +288,8 @@ const postRequest = function (url, postParams, finalCb) {
         }
     };
 
-    sendRequest(postObj, (err, response, body) => {
-        if (err) {
-            finalCb(err, null);
-            return;
-        }
-        finalCb(null, body);
+    queue.push(postObj, (err, response, data) => {
+        finalCb(err, data);
     });
 };
 
@@ -254,12 +314,8 @@ const postJSON = function (url, postParams, finalCb) {
         }
     };
 
-    sendRequest(postObj, (err, response, body) => {
-        if (err) {
-            finalCb(err, null);
-            return;
-        }
-        finalCb(null, body);
+    queue.push(postObj, (err, response, data) => {
+        finalCb(err, data);
     });
 };
 
@@ -281,12 +337,8 @@ const deleteRequest = function (url, finalCb) {
         }
     };
 
-    sendRequest(deleteObj, (err, response, body) => {
-        if (err) {
-            finalCb(err, null);
-            return;
-        }
-        finalCb(null, body);
+    queue.push(deleteObj, (err, response, data) => {
+        finalCb(err, data);
     });
 };
 
@@ -361,8 +413,32 @@ const getQuizQuestions = function (courseId, quizId, cb) {
  * overwrites auth.token so the wrapper can be 
  * used by different users in 1 program
  ***********************************************/
-function changeAuth(token) {
+function setAuth(token) {
     auth.token = token;
+}
+
+/**********************************************
+ * Updates the default domain used by formatURL
+ * when no domain is specified
+ **********************************************/
+function setDefaultDomain(newDomain) {
+    const possibleDomains = ['byui', 'pathway'];
+    if (possibleDomains.includes(newDomain)) {
+        domain = newDomain;
+    } else {
+        console.log(`Invalid domain. Domain must match one of the following: ${possibleDomains}`);
+    }
+}
+
+/**********************************************
+ * Updates the concurrent calls of the queue
+ ********************************************/
+function setConcurrency(newLimit) {
+    if (newLimit <= 50) {
+        queue.concurrency = newLimit;
+    } else {
+        console.log('Invalid Concurrency. Concurrency must not be above 50');
+    }
 }
 
 /* END EXTERNAL FUNCTIONS */
@@ -372,7 +448,7 @@ module.exports = {
     apiCount: apiCounter,
     get: getRequest,
     put: putRequest,
-    putJSON: putJSON,
+    putJSON,
     post: postRequest,
     postJSON,
     delete: deleteRequest,
@@ -384,5 +460,7 @@ module.exports = {
     getFiles,
     getQuizzes,
     getQuizQuestions,
-    changeUser: changeAuth
+    changeUser: setAuth,
+    changeDomain: setDefaultDomain,
+    changeConcurrency: setConcurrency
 };
