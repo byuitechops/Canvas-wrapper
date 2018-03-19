@@ -1,13 +1,17 @@
 # Canvas Wrapper #
-The canvas Wrapper simplifies calls to the Canvas API byproviding shorthands for the basic crud operations (POST, GET, PUT, DELETE). 
-This is in an effort to simplify the child modules and reduce code redundancy. 
+The Canvas Wrapper simplifies calls to the Canvas API by providing shorthands for the basic CRUD operations (POST, GET, PUT, DELETE). 
+
+The Canvas Wrapper handles pagination and throttling. It uses async.queue to limit the amount of calls it handles at one time and avoid overwhelming the Canvas servers.
+
+The wrapper looks for an API token in an auth.json file 2 directories up from the canvas wrapper. This makes the wrapper easier to use in the D2L to Canvas conversion tool. However, The wrapper can change API tokens on the fly using the `changeUser` method.
+
+
 Parameters for GET and DELETE requests must be appended to the URL/ URI before being sent to the wrapper.
-The wrapper allows the user to input the full URL or just the path.
-The wrapper requires auth.json (which contain a userId & auth token) to exist 2 directories up from the canvas wrapper. 
-This is to make the wrapper easier to use in the D2L to Canvas conversion tool.
+The wrapper allows the user to input the full URL or just the path. When the domain is excluded `byui` is used by default, however this default can be changed with the `changeDomain` method.
 
 
-In addition to the basic CRUD operations, the wrapper now contains getters for the following:
+
+In addition to the basic CRUD operations, the wrapper contains methods for GETting the following items:
 * Pages
 * Assignments
 * Quizzes
@@ -64,8 +68,7 @@ canvas.delete(url, (err, body) => {
 ```
 
 
-
-## Helper Functions (GET) ##
+# Additional GET methods #
 We include helper functions to 'GET' items that are frequently used by the conversion tool. General Getters retrieve items that live at the course level and only require a course id. Specific getters retrieve items that live below another item type, and therefore require the id of their parent in addition to the course id
 
 ## General Getters
@@ -89,4 +92,23 @@ canvas.getModules(courseID, (err, modules) => {
 ``` js
 canvas.getModuleItems(courseId, moduleId (err, moduleItems) => {
 });
+```
+
+# Additional Methods #
+### Change User ###
+Allows the user to change API tokens on the fly, allowing one progam to act as multiple different users.
+```js
+canvas.changeUser(authToken<string>);
+```
+
+### Change Domain ###
+Changes the default domain used by the Wrapper when only a URI is given. Domain must be either `byui` (current default) or `pathway`.
+```js
+canvas.changeDomain(domain<string>);
+```
+
+### ChangeConcurrency ###
+Alters the number of concurrent API calls allowed by the Canvas Wrapper. Default value is 20. Change takes place immediately.
+```js
+canvas.changeConcurrency(concurrency<number>);
 ```

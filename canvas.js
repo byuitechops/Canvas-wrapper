@@ -9,8 +9,6 @@ try {
     };
 }
 
-auth = require('./auth.json');
-
 const request = require('request');
 const asyncLib = require('async');
 
@@ -74,7 +72,6 @@ function updateRateLimit(response, cb) {
                 'Authorization': `Bearer ${auth.token}`
             }
         };
-        // TODO should this be included in the apiCounter?
         apiCounter++;
         request.get(derp, (err, response) => {
             if (err)
