@@ -18,8 +18,9 @@ const asyncLib = require('async');
 var domain = 'byui'; // default to byui
 var apiCounter = 0; // counts api calls made
 var rateLimit = 700; // used for throttling. 700 is the max value
+var concurrency = 20; // max number of operations running at any one time
 const buffer = 150; // once the rateLimit passes this point we pause the queue
-var queue = asyncLib.queue(preFlightCheck, 20); // 20 is the max number of operations running at any one time
+var queue = asyncLib.queue(preFlightCheck, concurrency);
 
 /* START INTERNAL HELPER FUNCTIONS */
 
@@ -415,7 +416,7 @@ const getQuizQuestions = function (courseId, quizId, cb) {
  * overwrites auth.token so the wrapper can be 
  * used by different users in 1 program
  ***********************************************/
-function changeAuth(token) {
+function setAuth(token) {
     auth.token = token;
 }
 
@@ -423,12 +424,23 @@ function changeAuth(token) {
  * Updates the default domain used by formatURL
  * when no domain is specified
  **********************************************/
-function changeDefaultDomain(newDomain) {
+function setDefaultDomain(newDomain) {
     const possibleDomains = ['byui', 'pathway'];
     if (possibleDomains.includes(newDomain)) {
         domain = newDomain;
     } else {
         console.log(`Invalid domain. Domain must match one of the following: ${possibleDomains}`);
+    }
+}
+
+/**********************************************
+ * Updates the concurrent calls of the queue
+ ********************************************/
+function setConcurrency(newLimit) {
+    if (newLimit <= 50) {
+        queue.concurrency = newLimit;
+    } else {
+        console.log('Invalid Concurrency. Concurrency must not be above 50');
     }
 }
 
@@ -451,6 +463,7 @@ module.exports = {
     getFiles,
     getQuizzes,
     getQuizQuestions,
-    changeUser: changeAuth,
-    changeDomain: changeDefaultDomain
+    changeUser: setAuth,
+    changeDomain: setDefaultDomain,
+    changeConcurrency: setConcurrency
 };
