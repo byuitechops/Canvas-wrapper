@@ -16,7 +16,7 @@ function noPaginate() {
             return;
         }
 
-        console.log(`GET without pagination\nAccounts retrieved: ${accounts.length}. Elapsed time: ${calcElapsedTime(startTime)}`);
+        console.log(`\nGET without pagination\nAccounts retrieved: ${accounts.length}. Elapsed time: ${calcElapsedTime(startTime)}`);
         return;
     });
 }
@@ -30,7 +30,7 @@ function paginate() {
             return;
         }
 
-        console.log(`GET with pagination\nCourses retrieved: ${courses.length}. Elapsed time: ${calcElapsedTime(startTime)}`);
+        console.log(`\nGET with pagination\nCourses retrieved: ${courses.length}. Elapsed time: ${calcElapsedTime(startTime)}`);
         return;
     });
 }

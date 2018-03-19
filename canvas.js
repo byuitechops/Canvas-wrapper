@@ -1,19 +1,20 @@
-/*eslint no-console:0*/
+/* eslint no-console:0 */
 var auth;
-/* ../../ so it can be used in a module */
+/* ../../ so it can be used in a child module */
 try {
     auth = require('../../auth.json');
 } catch (e) {
     auth = { token: '' };
 }
-// var auth = require('./auth.json');
 const request = require('request');
 const asyncLib = require('async');
 
-var apiCounter = 0;
-var rateLimit = 100;
-var queue = asyncLib.queue(preFlightCheck, 5);
-const buffer = 150;
+/* SETTINGS */
+var domain = 'byui'; // default to byui
+var apiCounter = 0; // counts api calls made
+var rateLimit = 700; // used for throttling. 700 is the max value
+const buffer = 150; // once the rateLimit passes this point we pause the queue
+var queue = asyncLib.queue(preFlightCheck, 20); // 20 is the max number of operations running at any one time
 
 /* START INTERNAL HELPER FUNCTIONS */
 
@@ -42,34 +43,41 @@ function paginate(response, caller, data, finalCb) {
     }
 }
 
-/****************************************
- * 
- ****************************************/
+/**********************************************************
+ * Updates the rateLimit variable using the given response.
+ * If no response is provided, a request is made & 
+ * updateRateLimit sends the response to itself
+ **********************************************************/
 function updateRateLimit(response, cb) {
-    /* if there is no response get one and try again */
-    if (response === null) {
+    if (response !== null) {
+        /* update rateLimit global variable */
+        if (response.headers['x-rate-limit-remaining'] != undefined) {
+            rateLimit = response.headers['x-rate-limit-remaining'];
+            cb();
+        } else {
+            /* if unable to get needed... poop. this could easily cause an infinite loop... */
+            // updateRateLimit(null, cb);
+            cb(new Error('unable to read x-rate-limit-remaining property'));
+        }
+    } else {
+        /* if there is no response get one and try again */
         var derp = {
             method: 'GET',
-            url: formatURL('/apl/v1/accounts/13'),
+            url: formatURL('/api/v1/accounts/13'),
             headers: {
                 'Authorization': `Bearer ${auth.token}`
             }
         };
-
+        // TODO should this be included in the apiCounter?
+        apiCounter++;
         request.get(derp, (err, response) => {
-            if (err) 
+            if (err)
                 cb(err);
             else if (response.statusCode < 200 || response.statusCode >= 300)
                 cb(new Error(`Status Code ${response.statusCode}`));
             else
                 updateRateLimit(response, cb);
         });
-    } else {
-        // TODO We need to handle when this fails
-        if (response.headers['x-rate-limit-remaining'] != undefined) {
-            rateLimit = response.headers['x-rate-limit-remaining'];
-        }
-        cb();
     }
 }
 
@@ -81,13 +89,16 @@ function sendRequest(reqObj, reqCb) {
     apiCounter++;
     /* Send the request */
     request(reqObj, (err, response, body) => {
-        /* Update the global rateLimit */
-        updateRateLimit(response, () => {
-            if (err) {
-                reqCb(err, response, body);
-            } else if (response.statusCode < 200 || response.statusCode >= 300) {
-                reqCb(new Error(`Status Code ${response.statusCode} | ${body}`), response, body);
-            } else {
+        if (err) {
+            reqCb(err, response, body);
+        } else if (response.statusCode < 200 || response.statusCode >= 300) {
+            reqCb(new Error(`Status Code ${response.statusCode} | ${body}`), response, body);
+        } else {
+            /* Update the global rateLimit */
+            updateRateLimit(response, (updateErr) => {
+                if (updateErr) {
+                    console.error(updateErr);
+                }
                 /* parse the body if it's a string */
                 if (typeof body === 'string') {
                     try {
@@ -97,32 +108,37 @@ function sendRequest(reqObj, reqCb) {
                     }
                 }
                 reqCb(null, response, body);
-            }
-        });
+            });
+        }
     });
 }
 
-/*****************************************
- * 
- * 
- *****************************************/
+/*******************************************************
+ * Ensures the RateLimit is above the designated buffer
+ * before sending each request. Pauses the queue when
+ * the rateLimit gets below the buffer.
+ *******************************************************/
 function preFlightCheck(reqObj, reqCb) {
+    /* is the rateLimit high enough? */
     if (rateLimit >= buffer) {
+        /* unpause the queue if needed */
         if (queue.paused) queue.resume();
         sendRequest(reqObj, reqCb);
     } else {
+        /* pause the queue if needed */
         if (!queue.paused) {
             queue.pause();
             console.log('Canvas servers are melting. Give them a moment to cool down.');
         }
-
+        /* make a tiny API call to update the rateLimit */
         updateRateLimit(null, (rateErr) => {
             if (rateErr) {
+                /* if updating the rateLimit failed, wait 3s and send the request */
                 console.error(`Error while updating the rateLimit. Reverting to timeouts. ${rateErr}`);
                 setTimeout(() => {
                     queue.resume();
                     sendRequest(reqObj, reqCb);
-                }, 10000);
+                }, 30000);
                 return;
             }
             setTimeout(() => {
@@ -137,10 +153,10 @@ function preFlightCheck(reqObj, reqCb) {
  * url if missing
  ******************************/
 function formatURL(url) {
-    if (url.search(/https?:\/\/byui.instructure.com/) >= 0) {
+    if (url.search(/https?:\/\/(?:byui|pathway).instructure.com/) >= 0) {
         return url;
     } else {
-        url = `https://byui.instructure.com${url}`;
+        url = `https://${domain}.instructure.com${url}`;
         return url;
     }
 }
@@ -198,15 +214,6 @@ const getRequest = function (url, finalCb, data = [], paginated = false) {
         data = data.concat(body);
         paginate(response, getRequest, data, finalCb);
     }
-
-    /* sendRequest(getObj, (err, response, body) => {
-        if (err) {
-            finalCb(err, null);
-            return;
-        }
-        data = data.concat(body);
-        paginate(response, getRequest, data, finalCb);
-    }); */
 };
 
 /****************************************
@@ -226,13 +233,7 @@ const putRequest = function (url, putParams, finalCb) {
         }
     };
 
-    sendRequest(putObj, (err, response, body) => {
-        if (err) {
-            finalCb(err, null);
-            return;
-        }
-        finalCb(null, body);
-    });
+    queue.push(putObj, finalCb);
 };
 
 
@@ -257,13 +258,7 @@ const putJSON = function (url, putParams, finalCb) {
         }
     };
 
-    sendRequest(putObj, (err, response, body) => {
-        if (err) {
-            finalCb(err, null);
-            return;
-        }
-        finalCb(null, body);
-    });
+    queue.push(putObj, finalCb);
 };
 
 
@@ -286,13 +281,7 @@ const postRequest = function (url, postParams, finalCb) {
         }
     };
 
-    sendRequest(postObj, (err, response, body) => {
-        if (err) {
-            finalCb(err, null);
-            return;
-        }
-        finalCb(null, body);
-    });
+    queue.push(postObj, finalCb);
 };
 
 /****************************************************
@@ -316,13 +305,7 @@ const postJSON = function (url, postParams, finalCb) {
         }
     };
 
-    sendRequest(postObj, (err, response, body) => {
-        if (err) {
-            finalCb(err, null);
-            return;
-        }
-        finalCb(null, body);
-    });
+    queue.push(postObj, finalCb);
 };
 
 /************************************************
@@ -343,13 +326,7 @@ const deleteRequest = function (url, finalCb) {
         }
     };
 
-    sendRequest(deleteObj, (err, response, body) => {
-        if (err) {
-            finalCb(err, null);
-            return;
-        }
-        finalCb(null, body);
-    });
+    queue.push(deleteObj, finalCb);
 };
 
 /* END CRUD FUNCTIONS */
@@ -427,6 +404,19 @@ function changeAuth(token) {
     auth.token = token;
 }
 
+/**********************************************
+ * Updates the default domain used by formatURL
+ * when no domain is specified
+ **********************************************/
+function changeDefaultDomain(newDomain) {
+    const possibleDomains = ['byui', 'pathway'];
+    if (possibleDomains.includes(newDomain)) {
+        domain = newDomain;
+    } else {
+        console.log(`Invalid domain. Domain must match one of the following: ${possibleDomains}`);
+    }
+}
+
 /* END EXTERNAL FUNCTIONS */
 
 
@@ -434,7 +424,7 @@ module.exports = {
     apiCount: apiCounter,
     get: getRequest,
     put: putRequest,
-    putJSON: putJSON,
+    putJSON,
     post: postRequest,
     postJSON,
     delete: deleteRequest,
@@ -446,5 +436,6 @@ module.exports = {
     getFiles,
     getQuizzes,
     getQuizQuestions,
-    changeUser: changeAuth
+    changeUser: changeAuth,
+    changeDomain: changeDefaultDomain
 };
