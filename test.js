@@ -93,11 +93,11 @@ function deleteReq() {
 
 
 
-paginate();
-noPaginate();
+// paginate();
+// noPaginate();
 // put(); // works
 // putJSON();
-// post(); // works
+post(); // works
 // postJSON();
 // deleteReq(); // works
 

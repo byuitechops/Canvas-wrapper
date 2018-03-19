@@ -4,8 +4,13 @@ var auth;
 try {
     auth = require('../../auth.json');
 } catch (e) {
-    auth = { token: '' };
+    auth = {
+        token: ''
+    };
 }
+
+auth = require('./auth.json');
+
 const request = require('request');
 const asyncLib = require('async');
 
@@ -233,7 +238,9 @@ const putRequest = function (url, putParams, finalCb) {
         }
     };
 
-    queue.push(putObj, finalCb);
+    queue.push(putObj, (err, response, data) => {
+        finalCb(err, data);
+    });
 };
 
 
@@ -258,7 +265,9 @@ const putJSON = function (url, putParams, finalCb) {
         }
     };
 
-    queue.push(putObj, finalCb);
+    queue.push(putObj, (err, response, data) => {
+        finalCb(err, data);
+    });
 };
 
 
@@ -281,7 +290,9 @@ const postRequest = function (url, postParams, finalCb) {
         }
     };
 
-    queue.push(postObj, finalCb);
+    queue.push(postObj, (err, response, data) => {
+        finalCb(err, data);
+    });
 };
 
 /****************************************************
@@ -305,7 +316,9 @@ const postJSON = function (url, postParams, finalCb) {
         }
     };
 
-    queue.push(postObj, finalCb);
+    queue.push(postObj, (err, response, data) => {
+        finalCb(err, data);
+    });
 };
 
 /************************************************
@@ -326,7 +339,9 @@ const deleteRequest = function (url, finalCb) {
         }
     };
 
-    queue.push(deleteObj, finalCb);
+    queue.push(deleteObj, (err, response, data) => {
+        finalCb(err, data);
+    });
 };
 
 /* END CRUD FUNCTIONS */
