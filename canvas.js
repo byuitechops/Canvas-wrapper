@@ -1,7 +1,7 @@
 /* eslint no-console:0 */
 var auth;
 /* ../../ so it can be used in a child module */
-auth = require('./auth.json');
+auth = require('../../auth.json');
 
 const request = require('request');
 const asyncLib = require('async');
