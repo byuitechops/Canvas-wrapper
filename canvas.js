@@ -1,13 +1,7 @@
 /* eslint no-console:0 */
 var auth;
 /* ../../ so it can be used in a child module */
-try {
-    auth = require('../../auth.json');
-} catch (e) {
-    auth = {
-        token: ''
-    };
-}
+auth = require('./auth.json');
 
 const request = require('request');
 const asyncLib = require('async');
@@ -172,7 +166,7 @@ function validateParams(url, cb, obj) {
     /* obj is null when not required */
     if (!cb || typeof cb != 'function') {
         throw Error('CB is not a function');
-    } else if (!url || typeof url != 'string' || (obj !== null && typeof obj != 'object')) {
+    } else if (!url || typeof url != 'string' || obj !== null && typeof obj != 'object') {
         return false;
     } else {
         return true;
