@@ -89,7 +89,7 @@ function sendRequest(reqObj, reqCb) {
         if (err) {
             reqCb(err, response, body);
         } else if (response.statusCode < 200 || response.statusCode >= 300) {
-            reqCb(new Error(`Status Code ${response.statusCode} | ${body}`), response, body);
+            reqCb(new Error(`Status Code ${response.statusCode} | ${reqObj.method} | ${reqObj.url} | ${body}`), response, body);
         } else {
             /* Update the global rateLimit */
             updateRateLimit(response, (updateErr) => {
