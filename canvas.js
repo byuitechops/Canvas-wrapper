@@ -1,5 +1,11 @@
 /* eslint no-console:0 */
-var auth = process.env.canvas_api_token;
+var auth = null;
+
+if (process.env.canvas_api_token === undefined) {
+    throw new Error('canvas_api_token enviroment variable is empty.');
+} else {
+    auth = process.env.canvas_api_token;
+}
 
 const request = require('request');
 const asyncLib = require('async');
@@ -190,7 +196,7 @@ const getRequest = function (url, finalCb, data = [], paginated = false) {
         method: 'GET',
         url: formatURL(url),
         headers: {
-            'Authorization': `Bearer ${auth.token}`
+            'Authorization': `Bearer ${auth}`
         }
     };
 
@@ -224,7 +230,7 @@ const putRequest = function (url, putParams, finalCb) {
         url: formatURL(url),
         form: putParams,
         headers: {
-            'Authorization': `Bearer ${auth.token}`
+            'Authorization': `Bearer ${auth}`
         }
     };
 
@@ -251,7 +257,7 @@ const putJSON = function (url, putParams, finalCb) {
         json: true,
         body: putParams,
         headers: {
-            'Authorization': `Bearer ${auth.token}`
+            'Authorization': `Bearer ${auth}`
         }
     };
 
@@ -276,7 +282,7 @@ const postRequest = function (url, postParams, finalCb) {
         url: formatURL(url),
         form: postParams,
         headers: {
-            'Authorization': `Bearer ${auth.token}`
+            'Authorization': `Bearer ${auth}`
         }
     };
 
@@ -302,7 +308,7 @@ const postJSON = function (url, postParams, finalCb) {
         json: true,
         body: postParams,
         headers: {
-            'Authorization': `Bearer ${auth.token}`
+            'Authorization': `Bearer ${auth}`
         }
     };
 
@@ -325,7 +331,7 @@ const deleteRequest = function (url, finalCb) {
         method: 'DELETE',
         url: formatURL(url),
         headers: {
-            'Authorization': `Bearer ${auth.token}`
+            'Authorization': `Bearer ${auth}`
         }
     };
 
@@ -402,11 +408,11 @@ const getQuizQuestions = function (courseId, quizId, cb) {
 };
 
 /************************************************
- * overwrites auth.token so the wrapper can be 
+ * overwrites auth so the wrapper can be 
  * used by different users in 1 program
  ***********************************************/
-function setAuth(token) {
-    auth.token = token;
+function setAuth(newToken) {
+    auth = newToken;
 }
 
 /**********************************************
