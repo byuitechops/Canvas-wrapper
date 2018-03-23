@@ -1,7 +1,5 @@
 /* eslint no-console:0 */
-var auth;
-/* ../../ so it can be used in a child module */
-auth = require('../../auth.json');
+var auth = process.env.canvas_api_token;
 
 const request = require('request');
 const asyncLib = require('async');
