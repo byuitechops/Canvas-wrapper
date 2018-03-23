@@ -8,14 +8,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/byuitechops/Canvas-wrapper.git"
+    "url": "git+https://github.com/byuitechops/canvas-wrapper.git"
   },
   "author": "Daniel Green",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/byuitechops/Canvas-wrapper/issues"
+    "url": "https://github.com/byuitechops/canvas-wrapper/issues"
   },
-  "homepage": "https://github.com/byuitechops/Canvas-wrapper#readme",
+  "homepage": "https://github.com/byuitechops/canvas-wrapper#readme",
   "dependencies": {
     "async": "^2.6.0",
     "request": "^2.83.0"
