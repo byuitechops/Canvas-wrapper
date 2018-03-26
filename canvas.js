@@ -1,10 +1,10 @@
 /* eslint no-console:0 */
 var auth = null;
 
-if (process.env.canvas_api_token === undefined) {
-    throw new Error('canvas_api_token enviroment variable is empty.');
+if (process.env.CANVAS_API_TOKEN === undefined) {
+    throw new Error('CANVAS_API_TOKEN enviroment variable is empty.');
 } else {
-    auth = process.env.canvas_api_token;
+    auth = process.env.CANVAS_API_TOKEN;
 }
 
 const request = require('request');
