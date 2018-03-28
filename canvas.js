@@ -9,6 +9,7 @@ if (process.env.CANVAS_API_TOKEN === undefined) {
 
 const request = require('request');
 const asyncLib = require('async');
+const fs = require('fs');
 
 /* SETTINGS */
 var domain = 'byui'; // default to byui
@@ -57,8 +58,6 @@ function updateRateLimit(response, cb) {
             rateLimit = response.headers['x-rate-limit-remaining'];
             cb();
         } else {
-            /* if unable to get needed... poop. this could easily cause an infinite loop... */
-            // updateRateLimit(null, cb);
             cb(new Error('unable to read x-rate-limit-remaining property'));
         }
     } else {
@@ -92,8 +91,11 @@ function sendRequest(reqObj, reqCb) {
     request(reqObj, (err, response, body) => {
         if (err) {
             reqCb(err, response, body);
-        } else if (response.statusCode < 200 || response.statusCode >= 300) {
+        } else if (Math.floor(response.statusCode / 100) === 3) {
+            reqCb(null, response, null);
+        } else if (Math.floor(response.statusCode / 100) !== 2) { //< 200 || response.statusCode >= 300) {
             reqCb(new Error(`Status Code ${response.statusCode} | ${reqObj.method} | ${reqObj.url} | ${body}`), response, body);
+
         } else {
             /* Update the global rateLimit */
             updateRateLimit(response, (updateErr) => {
@@ -154,7 +156,7 @@ function preFlightCheck(reqObj, reqCb) {
  * url if missing
  ******************************/
 function formatURL(url) {
-    if (url.search(/https?:\/\/(?:byui|pathway).instructure.com/) >= 0) {
+    if (url.search(/https?:\/\/(?:byui|pathway).instructure.com/) >= 0 || url === 'https://instructure-uploads.s3.amazonaws.com') {
         return url;
     } else {
         url = `https://${domain}.instructure.com${url}`;
@@ -276,7 +278,6 @@ const postRequest = function (url, postParams, finalCb) {
         return;
     }
 
-    // url = formatURL(url);
     var postObj = {
         method: 'POST',
         url: formatURL(url),
@@ -316,6 +317,31 @@ const postJSON = function (url, postParams, finalCb) {
         finalCb(err, data);
     });
 };
+
+
+function postMULTIPART(url, postParams, auth = false, cb) {
+    if (!validateParams(url, cb, postParams)) {
+        cb(new Error('Invalid parameters sent'));
+        return;
+    }
+
+    var postObj = {
+        method: 'POST',
+        url: formatURL(url),
+        formData: postParams,
+    };
+
+    if (auth) {
+        postObj.headers = {
+            'Authorization': `Bearer ${auth}`
+        };
+    }
+
+    queue.push(postObj, (err, response, data) => {
+        // TODO this passes back different parameters than the other requests
+        cb(err, data, response);
+    });
+}
 
 /************************************************
  * DELETE operation
@@ -439,6 +465,59 @@ function setConcurrency(newLimit) {
     }
 }
 
+
+/* STEP 3 */
+function confirmUpload(response, finalCb) {
+    postRequest(response.headers.location, {}, (err, response, body) => {
+        if (err) {
+            finalCb(err, null);
+            return;
+        }
+
+        finalCb(null, response);
+    });
+}
+
+/* STEP 2 */
+function uploadZip(migrationBody, filePath, finalCb) {
+    var preAttachment = migrationBody.pre_attachment;
+
+    preAttachment.upload_params.file = fs.createReadStream(filePath);
+
+    postMULTIPART(preAttachment.upload_url, preAttachment.upload_params, false, (err, data, response) => {
+        if (err) {
+            finalCb(err, null);
+            return;
+        }
+        confirmUpload(response, finalCb);
+    });
+}
+
+/* STEP 1 */
+function startCourseUpload(canvasOU, filePath, finalCb) {
+    var fileName = filePath.split('\\')[filePath.split('\\').length - 1],
+        url = `/api/v1/courses/${canvasOU}/content_migrations`,
+        form = {
+            migration_type: 'd2l_exporter',
+            'pre_attachment[name]': fileName,
+            'pre_attachment[content_type]': 'application/zip'
+        };
+    postRequest(url, form, (err, body) => {
+        if (err) {
+            //TODO what does the final Cb expect?
+            finalCb(err, null);
+            return;
+        }
+        uploadZip(body, filePath, finalCb);
+        // finalCB(err, response, body);
+    });
+
+}
+
+
+
+
+
 /* END EXTERNAL FUNCTIONS */
 
 
@@ -449,6 +528,7 @@ module.exports = {
     putJSON,
     post: postRequest,
     postJSON,
+    postMULTIPART,
     delete: deleteRequest,
     getModules,
     getModuleItems,
@@ -458,6 +538,7 @@ module.exports = {
     getFiles,
     getQuizzes,
     getQuizQuestions,
+    uploadCourse: startCourseUpload,
     changeUser: setAuth,
     changeDomain: setDefaultDomain,
     changeConcurrency: setConcurrency
