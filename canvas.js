@@ -318,31 +318,6 @@ const postJSON = function (url, postParams, finalCb) {
     });
 };
 
-
-function postMULTIPART(url, postParams, auth = false, cb) {
-    if (!validateParams(url, cb, postParams)) {
-        cb(new Error('Invalid parameters sent'));
-        return;
-    }
-
-    var postObj = {
-        method: 'POST',
-        url: formatURL(url),
-        formData: postParams,
-    };
-
-    if (auth) {
-        postObj.headers = {
-            'Authorization': `Bearer ${auth}`
-        };
-    }
-
-    queue.push(postObj, (err, response, data) => {
-        // TODO this passes back different parameters than the other requests
-        cb(err, data, response);
-    });
-}
-
 /************************************************
  * DELETE operation
  ************************************************/
@@ -437,64 +412,77 @@ const getQuizQuestions = function (courseId, quizId, cb) {
  * overwrites auth so the wrapper can be 
  * used by different users in 1 program
  ***********************************************/
-function setAuth(newToken) {
+const setAuth = (newToken) => {
     auth = newToken;
-}
+};
 
 /**********************************************
  * Updates the default domain used by formatURL
  * when no domain is specified
  **********************************************/
-function setDefaultDomain(newDomain) {
+const setDefaultDomain = (newDomain) => {
     const possibleDomains = ['byui', 'pathway'];
     if (possibleDomains.includes(newDomain)) {
         domain = newDomain;
     } else {
         console.log(`Invalid domain. Domain must match one of the following: ${possibleDomains}`);
     }
-}
+};
 
 /**********************************************
  * Updates the concurrent calls of the queue
  ********************************************/
-function setConcurrency(newLimit) {
+const setConcurrency = (newLimit) => {
     if (newLimit <= 50) {
         queue.concurrency = newLimit;
     } else {
         console.log('Invalid Concurrency. Concurrency must not be above 50');
     }
-}
+};
 
+const startCourseUpload = (canvasOU, filePath, finalCb) => {
+    /************************************************
+     * Step 3 of the course upload dance
+     * Confirm upload, send migration back to user
+     ************************************************/
+    function confirmUpload(response, migration) {
+        postRequest(response.headers.location, {}, (err, response, body) => {
+            if (err) {
+                finalCb(err, null);
+                return;
+            }
 
-/* STEP 3 */
-function confirmUpload(response, finalCb) {
-    postRequest(response.headers.location, {}, (err, response, body) => {
-        if (err) {
-            finalCb(err, null);
-            return;
-        }
+            finalCb(null, migration, response);
+        });
+    }
 
-        finalCb(null, response);
-    });
-}
+    /*****************************************************************
+     * Step 2 of the course upload dance
+     * Upload file as a MULTIPART/FORM request without authentication
+     *****************************************************************/
+    function uploadZip(migrationBody) {
+        var preAttachment = migrationBody.pre_attachment;
+        preAttachment.upload_params.file = fs.createReadStream(filePath);
 
-/* STEP 2 */
-function uploadZip(migrationBody, filePath, finalCb) {
-    var preAttachment = migrationBody.pre_attachment;
+        var postObj = {
+            method: 'POST',
+            url: formatURL(preAttachment.upload_url),
+            formData: preAttachment.upload_params,
+        };
+        /* make a MULTIPART request to  */
+        queue.push(postObj, (err, response, data) => {
+            if (err) {
+                finalCb(err, null);
+                return;
+            }
+            confirmUpload(response, migrationBody);
+        });
+    }
 
-    preAttachment.upload_params.file = fs.createReadStream(filePath);
-
-    postMULTIPART(preAttachment.upload_url, preAttachment.upload_params, false, (err, data, response) => {
-        if (err) {
-            finalCb(err, null);
-            return;
-        }
-        confirmUpload(response, finalCb);
-    });
-}
-
-/* STEP 1 */
-function startCourseUpload(canvasOU, filePath, finalCb) {
+    /************************************************
+     * Step 1 of the course upload dance
+     * Create migration & upload request
+     ************************************************/
     var fileName = filePath.split('\\')[filePath.split('\\').length - 1],
         url = `/api/v1/courses/${canvasOU}/content_migrations`,
         form = {
@@ -502,21 +490,15 @@ function startCourseUpload(canvasOU, filePath, finalCb) {
             'pre_attachment[name]': fileName,
             'pre_attachment[content_type]': 'application/zip'
         };
-    postRequest(url, form, (err, body) => {
+    // pre_attachment is only added when uploading a course
+    postRequest(url, form, (err, migration) => {
         if (err) {
-            //TODO what does the final Cb expect?
             finalCb(err, null);
             return;
         }
-        uploadZip(body, filePath, finalCb);
-        // finalCB(err, response, body);
+        uploadZip(migration);
     });
-
-}
-
-
-
-
+};
 
 /* END EXTERNAL FUNCTIONS */
 
@@ -528,7 +510,6 @@ module.exports = {
     putJSON,
     post: postRequest,
     postJSON,
-    postMULTIPART,
     delete: deleteRequest,
     getModules,
     getModuleItems,
