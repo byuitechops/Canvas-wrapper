@@ -62,15 +62,15 @@ function updateRateLimit(response, cb) {
         }
     } else {
         /* if there is no response get one and try again */
-        var derp = {
+        var tinyRequest = {
             method: 'GET',
-            url: formatURL('/api/v1/accounts/13'),
+            url: formatURL('/api/v1/accounts/19'),
             headers: {
                 'Authorization': `Bearer ${auth.token}`
             }
         };
         apiCounter++;
-        request.get(derp, (err, response) => {
+        request.get(tinyRequest, (err, response) => {
             if (err)
                 cb(err);
             else if (response.statusCode < 200 || response.statusCode >= 300)
