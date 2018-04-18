@@ -91,23 +91,23 @@ function sendRequest(reqObj, reqCb) {
     request(reqObj, (err, response, body) => {
         if (err) {
             reqCb(err, response, body);
-        } else if (Math.floor(response.statusCode / 100) === 3) {
+        } else if (Math.floor(response.statusCode / 100) === 3) { /* on redirect */
             reqCb(null, response, null);
-        } else if (Math.floor(response.statusCode / 100) !== 2) { //< 200 || response.statusCode >= 300) {
+        } else if (Math.floor(response.statusCode / 100) !== 2) { /* if status code is not in the 200's */
             reqCb(new Error(`Status Code ${response.statusCode} | ${reqObj.method} | ${reqObj.url} | ${body}`), response, body);
-
-        } else {
+        } else { /* if valid! */
             /* Update the global rateLimit */
             updateRateLimit(response, (updateErr) => {
                 if (updateErr) {
                     console.error(updateErr);
                 }
                 /* parse the body if it's a string */
-                if (typeof body === 'string') {
+                if (response.headers['content-type'].split(';')[0] === 'application/json') {
                     try {
                         body = JSON.parse(body);
                     } catch (e) {
                         reqCb(e, response, body);
+                        return;
                     }
                 }
                 reqCb(null, response, body);
@@ -237,7 +237,8 @@ const putRequest = function (url, putParams, finalCb) {
     };
 
     queue.push(putObj, (err, response, data) => {
-        finalCb(err, data);
+        if (err) finalCb(err, data);
+        else finalCb(null, data);
     });
 };
 
@@ -264,7 +265,8 @@ const putJSON = function (url, putParams, finalCb) {
     };
 
     queue.push(putObj, (err, response, data) => {
-        finalCb(err, data);
+        if (err) finalCb(err, data);
+        else finalCb(null, data);
     });
 };
 
@@ -288,7 +290,8 @@ const postRequest = function (url, postParams, finalCb) {
     };
 
     queue.push(postObj, (err, response, data) => {
-        finalCb(err, data);
+        if (err) finalCb(err, data);
+        else finalCb(null, data);
     });
 };
 
@@ -314,7 +317,8 @@ const postJSON = function (url, postParams, finalCb) {
     };
 
     queue.push(postObj, (err, response, data) => {
-        finalCb(err, data);
+        if (err) finalCb(err, data);
+        else finalCb(null, data);
     });
 };
 
@@ -337,7 +341,8 @@ const deleteRequest = function (url, finalCb) {
     };
 
     queue.push(deleteObj, (err, response, data) => {
-        finalCb(err, data);
+        if (err) finalCb(err, data);
+        else finalCb(null, data);
     });
 };
 
@@ -366,6 +371,33 @@ const getModuleItems = function (courseId, moduleId, cb) {
 const getPages = function (courseId, cb) {
     var url = `/api/v1/courses/${courseId}/pages`;
     getRequest(url, cb);
+};
+
+const getFullPages = function (courseId, cb) {
+    function getAPage(page, mapCB) {
+        getRequest(page.html_url, (pageErr, page) => {
+            if (pageErr) {
+                mapCB(pageErr, page);
+                return;
+            }
+            mapCB(null, page);
+        });
+    }
+
+    getPages(courseId, (pagesErr, pages) => {
+        if (pagesErr) {
+            cb(pagesErr, pages);
+            return;
+        }
+
+        asyncLib.mapLimit(pages, concurrency / 2, getAPage, (fullPageErr, fullPages) => {
+            if (fullPageErr) {
+                cb(fullPageErr, fullPages);
+                return;
+            }
+            cb(null, fullPages);
+        });
+    });
 };
 
 /**************************************
@@ -514,6 +546,7 @@ module.exports = {
     getModules,
     getModuleItems,
     getPages,
+    // getFullPages,
     getAssignments,
     getDiscussions,
     getFiles,
