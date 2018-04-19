@@ -13,7 +13,7 @@ const fs = require('fs');
 
 /* SETTINGS */
 var domain = 'byui'; // default to byui
-var apiCounter = 0; // counts api calls made
+var apiCount = 0; // counts api calls made
 var rateLimit = 700; // used for throttling. 700 is the max value
 var concurrency = 20; // max number of operations running at any one time
 const buffer = 150; // once the rateLimit passes this point we pause the queue
@@ -65,7 +65,7 @@ function updateRateLimit(response, cb) {
                 'Authorization': `Bearer ${auth}`
             }
         };
-        apiCounter++;
+        apiCount++;
         request.get(tinyRequest, (err, response) => {
             if (err)
                 cb(err);
@@ -82,7 +82,7 @@ function updateRateLimit(response, cb) {
  * All calls come through this function
  *****************************************/
 function sendRequest(reqObj, reqCb) {
-    apiCounter++;
+    apiCount++;
     /* Send the request */
     request(reqObj, (err, response, body) => {
         var jsonResponse = response.headers['content-type'].split(';')[0] === 'application/json';
@@ -365,9 +365,9 @@ const getModuleItems = function (courseId, moduleId, cb) {
     getRequest(url, cb);
 };
 
-/********************************
- * gets all pages using courseId
- ********************************/
+/************************************
+ * gets all pages including the HTML
+ ************************************/
 const getPages = function (courseId, cb) {
     var url = `/api/v1/courses/${courseId}/pages`;
     getRequest(url, cb);
@@ -532,11 +532,18 @@ const startCourseUpload = (canvasOU, filePath, finalCb) => {
     });
 };
 
+/********************************
+ * returns the apiCount variable
+ *******************************/
+const getApiCount = function () {
+    return apiCount;
+};
+
 /* END EXTERNAL FUNCTIONS */
 
 
 module.exports = {
-    apiCount: apiCounter,
+    apiCount: getApiCount,
     get: getRequest,
     put: putRequest,
     putJSON,
