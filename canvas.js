@@ -52,21 +52,17 @@ function paginate(response, caller, data, finalCb) {
  * updateRateLimit sends the response to itself
  **********************************************************/
 function updateRateLimit(response, cb) {
-    if (response !== null) {
+    if (response !== null && response.headers['x-rate-limit-remaining'] !== undefined) {
         /* update rateLimit global variable */
-        if (response.headers['x-rate-limit-remaining'] != undefined) {
-            rateLimit = response.headers['x-rate-limit-remaining'];
-            cb();
-        } else {
-            cb(new Error('unable to read x-rate-limit-remaining property'));
-        }
+        rateLimit = response.headers['x-rate-limit-remaining'];
+        cb();
     } else {
-        /* if there is no response get one and try again */
+        /* if there is no response OR x-rate-limit-remaining header get one and try again */
         var tinyRequest = {
             method: 'GET',
             url: formatURL('/api/v1/accounts/19'),
             headers: {
-                'Authorization': `Bearer ${auth.token}`
+                'Authorization': `Bearer ${auth}`
             }
         };
         apiCounter++;
@@ -89,20 +85,24 @@ function sendRequest(reqObj, reqCb) {
     apiCounter++;
     /* Send the request */
     request(reqObj, (err, response, body) => {
+        var jsonResponse = response.headers['content-type'].split(';')[0] === 'application/json';
         if (err) {
             reqCb(err, response, body);
+            return;
         } else if (Math.floor(response.statusCode / 100) === 3) { /* on redirect */
             reqCb(null, response, null);
         } else if (Math.floor(response.statusCode / 100) !== 2) { /* if status code is not in the 200's */
-            reqCb(new Error(`Status Code ${response.statusCode} | ${reqObj.method} | ${reqObj.url} | ${body}`), response, body);
+            /* only append body to the error if it's JSON */
+            if (jsonResponse) reqCb(new Error(`Status Code ${response.statusCode} | ${reqObj.method} | ${reqObj.url} | ${body}`), response, body);
+            else reqCb(new Error(`Status Code ${response.statusCode} | ${reqObj.method} | ${reqObj.url}`), response, body);
         } else { /* if valid! */
             /* Update the global rateLimit */
             updateRateLimit(response, (updateErr) => {
                 if (updateErr) {
-                    console.error(updateErr);
+                    console.error(updateErr.message);
                 }
-                /* parse the body if it's a string */
-                if (response.headers['content-type'].split(';')[0] === 'application/json') {
+                /* parse the body if it's JSON */
+                if (jsonResponse) {
                     try {
                         body = JSON.parse(body);
                     } catch (e) {
@@ -375,7 +375,7 @@ const getPages = function (courseId, cb) {
 
 const getFullPages = function (courseId, cb) {
     function getAPage(page, mapCB) {
-        getRequest(page.html_url, (pageErr, page) => {
+        getRequest(`/api/v1/courses/${courseId}/pages/${page.page_id}`, (pageErr, page) => {
             if (pageErr) {
                 mapCB(pageErr, page);
                 return;
@@ -546,7 +546,7 @@ module.exports = {
     getModules,
     getModuleItems,
     getPages,
-    // getFullPages,
+    getFullPages,
     getAssignments,
     getDiscussions,
     getFiles,

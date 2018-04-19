@@ -2,10 +2,9 @@
 /*eslint no-console:0 */
 
 const canvas = require('./canvas.js');
-const auth = require('./auth.json').token;
+// const auth = require('./auth.json').token;
 const calcElapsedTime = require('./elapsedTime.js');
-
-canvas.changeUser(auth);
+// canvas.changeUser(auth);
 
 /* GET with pagination */
 function noPaginate() {
@@ -92,12 +91,24 @@ function deleteReq() {
 }
 
 
+function getAllDaPages(courseId) {
+    canvas.getFullPages(courseId, (err, pages) => {
+        if(err) {
+            console.error(err);
+            return;
+        }
+        console.log('Success');
+        console.log(`Got ${pages.length} pages`);
+    });
+}
 
-paginate();
-noPaginate();
+
+getAllDaPages(11378);
+// paginate();
+// noPaginate();
 // put(); // works
 // putJSON();
-post(); // works
+// post(); // works
 // postJSON();
 // deleteReq(); // works
 
