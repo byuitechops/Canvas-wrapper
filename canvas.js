@@ -85,13 +85,15 @@ function sendRequest(reqObj, reqCb) {
     apiCount++;
     /* Send the request */
     request(reqObj, (err, response, body) => {
-        var jsonResponse = response.headers['content-type'].split(';')[0] === 'application/json';
         if (err) {
             reqCb(err, response, body);
             return;
         } else if (Math.floor(response.statusCode / 100) === 3) { /* on redirect */
             reqCb(null, response, null);
-        } else if (Math.floor(response.statusCode / 100) !== 2) { /* if status code is not in the 200's */
+            return;
+        } 
+        var jsonResponse = response.headers['content-type'].split(';')[0] === 'application/json';
+        if (Math.floor(response.statusCode / 100) !== 2) { /* if status code is not in the 200's */
             /* only append body to the error if it's JSON */
             if (jsonResponse) reqCb(new Error(`Status Code ${response.statusCode} | ${reqObj.method} | ${reqObj.url} | ${body}`), response, body);
             else reqCb(new Error(`Status Code ${response.statusCode} | ${reqObj.method} | ${reqObj.url}`), response, body);
