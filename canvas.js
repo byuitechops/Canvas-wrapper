@@ -91,7 +91,7 @@ function sendRequest(reqObj, reqCb) {
         } else if (Math.floor(response.statusCode / 100) === 3) { /* on redirect */
             reqCb(null, response, null);
             return;
-        } 
+        }
         var jsonResponse = response.headers['content-type'].split(';')[0] === 'application/json';
         if (Math.floor(response.statusCode / 100) !== 2) { /* if status code is not in the 200's */
             /* only append body to the error if it's JSON */
@@ -104,7 +104,7 @@ function sendRequest(reqObj, reqCb) {
                     console.error(updateErr.message);
                 }
                 /* parse the body if it's JSON */
-                if (jsonResponse) {
+                if (jsonResponse && typeof body === 'string') {
                     try {
                         body = JSON.parse(body);
                     } catch (e) {
