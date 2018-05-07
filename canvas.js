@@ -104,7 +104,6 @@ function sendRequest(reqObj, reqCb) {
                 if (updateErr) {
                     console.error(updateErr.message);
                 }
-                
 
                 /* parse the body if it's JSON */
                 if (jsonResponse && typeof body === 'string') {
