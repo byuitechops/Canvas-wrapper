@@ -19,5 +19,8 @@
   "dependencies": {
     "async": "^2.6.0",
     "request": "^2.83.0"
+  },
+  "devDependencies": {
+    "chalk": "^2.4.1"
   }
 }

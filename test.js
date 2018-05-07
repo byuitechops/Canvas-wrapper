@@ -2,6 +2,7 @@
 /*eslint no-console:0 */
 
 const canvas = require('./canvas.js');
+const chalk = require('chalk');
 // const auth = require('./auth.json').token;
 const calcElapsedTime = require('./elapsedTime.js');
 // canvas.changeUser(auth);
@@ -36,30 +37,48 @@ function paginate() {
 
 /* basic PUT */
 function put() {
-    canvas.put('/api/v1/courses/92/pages/how%20to%20understand%20due%20dates', { 'wiki_page[front_page]': true }, (err, data) => {
+    // canvas.put('/api/v1/courses/92/pages/how%20to%20understand%20due%20dates', { 'wiki_page[front_page]': true }, (err, data) => {
+    // canvas.put('/api/v1/courses/92/modules/923', {
+    canvas.put('/api/v1/courses/92/modules/7', {
+        'module[name]': 'I\'ve been renamed'
+    }, (err, data) => {
         if (err) {
-            console.error(err);
+            console.error(chalk.red(err));
+            console.log(chalk.yellow('PUT broke'));
             return;
         }
         // console.log(data);
-        console.log('put worked');
+        console.log(chalk.green('put worked'));
     });
 }
 
 /* PUT as type JSON */
 function putJSON() {
-    canvas.put('/api/v1/courses/92/modules/923', {'module[name]': 'I\'ve been renamed'}, (err, data) => {
+    /*  var putObj = {
+        module : {
+            name: 'My name got chnaged'
+        }
+    }; */
+    var anotherPutObj = {
+        'module[name]': 'I\'ve been renamed'
+    };
+
+    canvas.putJSON('/api/v1/courses/92/modules/923', anotherPutObj , (err, data) => {
         if (err) {
-            console.error(err);
+            console.error(chalk.red(err));
+            console.log(chalk.yellow('PUT JSON broke'));
             return;
         }
-        console.log(data);
+        // console.log(data);
+        console.log(chalk.green('putJSON worked'));
     });
 }
 
 /* basic POST */
 function post() {
-    canvas.post('/api/v1/courses/92/modules', { 'module[name]': 'testModule2' }, (err, data) => {
+    canvas.post('/api/v1/courses/92/modules', {
+        'module[name]': 'testModule2'
+    }, (err, data) => {
         if (err) {
             console.error(err);
             return;
@@ -93,7 +112,7 @@ function deleteReq() {
 
 function getAllDaPages(courseId) {
     canvas.getFullPages(courseId, (err, pages) => {
-        if(err) {
+        if (err) {
             console.error(err);
             return;
         }
@@ -103,14 +122,14 @@ function getAllDaPages(courseId) {
 }
 
 
-getAllDaPages(11378);
+// getAllDaPages(11378);
 // paginate();
 // noPaginate();
-// put(); // works
+put();
 // putJSON();
-// post(); // works
+// post();
 // postJSON();
-// deleteReq(); // works
+// deleteReq();
 
 
 // canvas.getModules(2034, (err, moduels) => {

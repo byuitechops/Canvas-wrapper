@@ -94,8 +94,9 @@ function sendRequest(reqObj, reqCb) {
         }
         var jsonResponse = response.headers['content-type'].split(';')[0] === 'application/json';
         if (Math.floor(response.statusCode / 100) !== 2) { /* if status code is not in the 200's */
-            /* only append body to the error if it's JSON */
-            if (jsonResponse) reqCb(new Error(`Status Code ${response.statusCode} | ${reqObj.method} | ${reqObj.url} | ${body}`), response, body);
+            /* only append body to the error if it's JSON (so we don't have a full HTML page in the error) */
+            if (jsonResponse && typeof body !== 'string') reqCb(new Error(`Status Code ${response.statusCode} | ${reqObj.method} | ${reqObj.url} | ${JSON.stringify(body)}`), response, body);
+            else if (jsonResponse && typeof body === 'string') reqCb(new Error(`Status Code ${response.statusCode} | ${reqObj.method} | ${reqObj.url} | ${body}`), response, body);
             else reqCb(new Error(`Status Code ${response.statusCode} | ${reqObj.method} | ${reqObj.url}`), response, body);
         } else { /* if valid! */
             /* Update the global rateLimit */
@@ -103,6 +104,8 @@ function sendRequest(reqObj, reqCb) {
                 if (updateErr) {
                     console.error(updateErr.message);
                 }
+                
+
                 /* parse the body if it's JSON */
                 if (jsonResponse && typeof body === 'string') {
                     try {
