@@ -64,7 +64,11 @@ canvas.post(url, postObj, (err, body) => {
 ## POST JSON ##
 The exact same as POST, but parameters are sent as type ```application/json```. This is useful depending on the call being made. Often time calls that accept an array as a parameter work better when sent as JSON. Parameters DO NOT need to be stringified before sending to this method.
 ```js
-var postObj = {"course[name]": "CSs 124" };
+var postObj = {
+  course : {
+    name: "CSs 124"
+  }
+};
 canvas.postJSON(url, putObj, (err, body) => {
 });
 ```
@@ -93,7 +97,11 @@ canvas.put(url, putObj, (err, body) => {
 ## PUT JSON ##
 The exact same as PUT, but parameters are sent as type ```application/json```. This is useful depending on the call being made. Often time calls that accept an array as a parameter work better when sent as JSON. Parameters DO NOT need to be stringified before sending to this method.
 ```js
-var putObj = {"course[name]": "CS 124" };
+var putObj = {
+  course : {
+    name: "CS 124"
+  }
+};
 canvas.putJSON(url, putObj, (err, body) => {
 });
 ```
