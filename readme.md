@@ -34,8 +34,8 @@ canvas.get(url, (err, data) => {
 });
 ```
 ### Parameters:
-| Name          | Type          | Description  |
-| ------------- |:---------:| ------------:|
+| Name          | Type      | Description  |
+| ------------- |-----------|--------------|
 | url           | String    | URL or URI to send the request to |
 | callback      | function  | Function to execute for each element, taking two arguments |
 | err           | Error     | An Error object |
@@ -53,7 +53,7 @@ canvas.post(url, postObj, (err, body) => {
 ```
 ### Parameters:
 | Name          | Type      | Description  |
-| ------------- |:---------:| ------------:|
+| ------------- |-----------|--------------|
 | url           | String    | URL or URI to send the request to |
 | postObj       | Object    | The request parameters as specified in the Canvas API docs |
 | callback      | function  | Function to execute for each element, taking two arguments |
@@ -85,7 +85,7 @@ canvas.put(url, putObj, (err, body) => {
 ```
 ### Parameters:
 | Name          | Type      | Description  |
-| ------------- |:---------:| ------------:|
+| ------------- |-----------|--------------|
 | url           | String    | URL or URI to send the request to |
 | putObj        | Object    | The request parameters as specified in the Canvas API docs |
 | callback      | function  | Function to execute for each element, taking two arguments |
@@ -115,7 +115,7 @@ canvas.delete(url, (err, body) => {
 ```
 ### Parameters:
 | Name          | Type      | Description  |
-| ------------- |:---------:| ------------:|
+| ------------- |-----------|--------------|
 | url           | String    | URL or URI to send the request to |
 | callback      | function  | Function to execute for each element, taking two arguments |
 | err           | Error     | An Error object |
@@ -143,7 +143,7 @@ canvas.getModules(courseID, (err, modules) => {
 ```
 ### Parameters:
 | Name          | Type             | Description  |
-| ------------- |:----------------:| ------------:|
+| ------------- |------------------|--------------|
 | courseID      | number \| string | The unique ID of the course you would like to get items from |
 | callback      | function         | Function to execute for each element, taking two arguments |
 | err           | Error            | An Error object |
