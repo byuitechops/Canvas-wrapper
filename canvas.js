@@ -92,7 +92,12 @@ function sendRequest(reqObj, reqCb) {
             reqCb(null, response, null);
             return;
         }
-        var jsonResponse = response.headers['content-type'].split(';')[0] === 'application/json';
+        
+        var jsonResponse = null;
+        if (response.headers['content-type']) {
+            jsonResponse = response.headers['content-type'].split(';')[0] === 'application/json';
+        }
+        
         if (Math.floor(response.statusCode / 100) !== 2) { /* if status code is not in the 200's */
             /* only append body to the error if it's JSON (so we don't have a full HTML page in the error) */
             if (jsonResponse && typeof body !== 'string') reqCb(new Error(`Status Code ${response.statusCode} | ${reqObj.method} | ${reqObj.url} | ${JSON.stringify(body)}`), response, body);
