@@ -165,6 +165,7 @@ function preFlightCheck(reqObj, reqCb) {
  * url if missing
  ******************************/
 function formatURL(url) {
+    url = url.replace('http:', 'https:');
     if (url.search(/https?:\/\/(?:byui|pathway).instructure.com/) >= 0 || url === 'https://instructure-uploads.s3.amazonaws.com') {
         return url;
     } else {
