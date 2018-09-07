@@ -150,7 +150,7 @@ function preFlightCheck(reqObj, reqCb) {
                 setTimeout(() => {
                     queue.resume();
                     sendRequest(reqObj, reqCb);
-                }, 30000);
+                }, 3000);
                 return;
             }
             setTimeout(() => {
