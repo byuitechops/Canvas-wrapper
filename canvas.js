@@ -508,7 +508,7 @@ const startCourseUpload = (canvasOU, filePath, finalCb) => {
 
         var postObj = {
             method: 'POST',
-            url: formatURL(preAttachment.upload_url),
+            url: preAttachment.upload_url,
             formData: preAttachment.upload_params,
         };
         /* make a MULTIPART request to  */
