@@ -36,7 +36,7 @@ function paginate(response, caller, data, finalCb) {
         var link = response.headers.link.split(',').filter((link) => {
             return link.includes('next');
         })[0];
-        /* filter <> and other characters out of url */
+            /* filter <> and other characters out of url */
         if (link == undefined || link.length == 0) {
             finalCb(null, data);
         } else {
@@ -221,6 +221,12 @@ const getRequest = function (url, finalCb, data = [], paginated = false) {
     function callReturned(err, response, body) {
         if (err) {
             finalCb(err);
+            return;
+        }
+
+        /* Don't keep paginating if Canvas isn't returning anything */
+        if (body.length === 0 && data.length > 0) {
+            finalCb(null, data);
             return;
         }
 
